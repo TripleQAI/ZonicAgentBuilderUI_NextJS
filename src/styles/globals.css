@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Design tokens — ported verbatim from the source project's
+   agentBuilder/static/agentBuilder/css/workflow_builder.css :root
+   block, so the visual identity is unchanged while the 1,798 lines of
+   bespoke component CSS are replaced by utilities.
+   ============================================================ */
+:root {
+  /* Channels, not hex: Tailwind composes them as
+     `rgb(var(--x-rgb) / <alpha-value>)`, which is what makes `bg-accent/15`
+     work. The hex-equivalent variables below are derived from these, so each
+     colour is still defined exactly once. */
+  --bg-dark-rgb: 19 19 31; /* #13131f */
+  --bg-panel-rgb: 30 30 46; /* #1e1e2e */
+  --bg-card-rgb: 255 255 255; /* #ffffff */
+  --border-rgb: 49 50 68; /* #313244 */
+  --accent-rgb: 137 180 250; /* #89b4fa */
+  --accent-2-rgb: 203 166 247; /* #cba6f7 */
+  --text-primary-rgb: 205 214 244; /* #cdd6f4 */
+  --text-muted-rgb: 108 112 134; /* #6c7086 */
+  --text-dark-rgb: 30 30 46; /* #1e1e2e */
+  --node-select-rgb: 59 130 246; /* #3b82f6 */
+
+  /* Status colours, lifted from the badge and handle rules in the source. */
+  --danger-rgb: 243 139 168; /* #f38ba8 */
+  --warning-rgb: 249 226 175; /* #f9e2af */
+  --success-rgb: 166 227 161; /* #a6e3a1 */
+
+  /* Opaque aliases, for plain `var(--accent)` use in CSS and inline styles. */
+  --bg-dark: rgb(var(--bg-dark-rgb));
+  --bg-panel: rgb(var(--bg-panel-rgb));
+  --bg-card: rgb(var(--bg-card-rgb));
+  --border-color: rgb(var(--border-rgb));
+  --accent: rgb(var(--accent-rgb));
+  --accent-2: rgb(var(--accent-2-rgb));
+  --text-primary: rgb(var(--text-primary-rgb));
+  --text-muted: rgb(var(--text-muted-rgb));
+  --text-dark: rgb(var(--text-dark-rgb));
+  --node-select: rgb(var(--node-select-rgb));
+  --danger: rgb(var(--danger-rgb));
+  --warning: rgb(var(--warning-rgb));
+  --success: rgb(var(--success-rgb));
+  --node-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
+  /* Layout metrics, also from the source. */
+  --panel-min: 360px;
+  --panel-max: 720px;
+  --header-h: 58px;
+  --sidebar-w: 270px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+@layer components {
+  /* Form primitives, used by every field component. */
+  .prop-label {
+    @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-text-muted;
+  }
+  .prop-input,
+  .prop-select,
+  .prop-textarea {
+    @apply w-full rounded-md border border-border bg-bg px-2 py-1.5 text-[12px]
+           text-text-primary outline-none transition-colors;
+  }
+  .prop-input:focus,
+  .prop-select:focus,
+  .prop-textarea:focus {
+    @apply border-accent;
+  }
+  .prop-textarea {
+    @apply resize-y font-normal;
+  }
+  .prop-hint {
+    @apply mt-1 text-[11px] leading-snug text-text-muted;
+  }
+  .prop-field {
+    @apply mb-3;
+  }
+  .prop-section-title {
+    @apply mb-2 text-[11px] font-bold uppercase tracking-wider text-text-muted;
+  }
+
+  .btn-icon {
+    @apply inline-flex h-7 w-7 items-center justify-center rounded-md border border-transparent
+           text-text-muted transition-colors hover:border-border hover:text-text-primary;
+  }
+  .btn-sm {
+    @apply inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1
+           text-[12px] text-text-primary transition-colors hover:border-accent hover:text-accent;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-1 rounded-md border border-accent bg-accent/15 px-3 py-1.5
+           text-[12px] font-medium text-accent transition-colors hover:bg-accent/25;
+  }
+
+  .count-badge {
+    @apply rounded-full border border-border px-2 py-0.5 text-[10px] text-text-muted;
+  }
+
+  /* Read-only mode dims every control in the panel, as the source did. */
+  .is-readonly input,
+  .is-readonly select,
+  .is-readonly textarea,
+  .is-readonly button:not(.readonly-allowed) {
+    @apply pointer-events-none opacity-50;
+  }
+}
+
+/* React Flow overrides — keep the canvas in the project's palette. */
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__handle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-panel);
+}
+.react-flow__handle:hover,
+.react-flow__handle.connectingto {
+  border-color: var(--success);
+  background: var(--success);
+}
+.react-flow__edge-path {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.react-flow__controls-button {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-color);
+  fill: var(--text-primary);
+}
+.react-flow__controls-button:hover {
+  background: var(--border-color);
+}
+.react-flow__minimap {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
