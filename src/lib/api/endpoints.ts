@@ -24,6 +24,7 @@ export const endpoints = {
   embed: (id: string) => `${V1}/agents/${id}/embed`,
   nodeTypes: () => `${V1}/node-types`,
   tools: () => `${V1}/tools`,
+  optionSets: () => `${V1}/option-sets`,
   validate: () => `${V1}/workflows/validate`,
   runMock: () => `${V1}/workflows/run-mock`,
   health: () => `${API_BASE}/health`,

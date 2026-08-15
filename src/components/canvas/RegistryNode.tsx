@@ -3,6 +3,7 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 
+import { nodeColor, nodeIcon } from '@/lib/registry/nodePresentation';
 import { cn } from '@/lib/utils/cn';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import type { HandleDef } from '@/types/registry';
@@ -33,8 +34,8 @@ function RegistryNodeComponent({ id, data, selected }: NodeProps) {
   const nodeData = data as RegistryNodeData;
   const definition = useWorkflowStore((s) => s.getNodeTypeDef(nodeData.nodeType));
 
-  const color = definition?.color ?? '#6b7280';
-  const icon = definition?.icon ?? 'bi-circle';
+  const color = nodeColor(definition);
+  const icon = nodeIcon(definition);
   const sources: HandleDef[] = definition?.handles?.sources ?? [];
   const targets: HandleDef[] = definition?.handles?.targets ?? [];
   const isMissingChild = nodeData.childResolved === false;

@@ -8,56 +8,25 @@ import {
   type FieldProps,
   type ListColumn,
 } from '@/components/fields/primitives';
+import { useOptions } from '@/lib/registry/optionSets';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 
 /**
  * The list-shaped widgets.
  *
  * Five of them are the same component with different columns — the repetition
- * the source carried five times over.
+ * the source carried five times over. Their `<select>` options come from the
+ * backend's shared option sets, not from arrays declared here.
  */
 
-const TYPE_OPTIONS = [
-  { value: 'string', label: 'String' },
-  { value: 'number', label: 'Number' },
-  { value: 'boolean', label: 'Boolean' },
-  { value: 'array', label: 'Array' },
-  { value: 'object', label: 'Object' },
-  { value: 'variable', label: 'Variable Ref' },
-];
-
-const STATE_OPS = [
-  { value: 'set', label: 'Set' },
-  { value: 'append', label: 'Append' },
-  { value: 'extend', label: 'Extend' },
-  { value: 'merge', label: 'Merge' },
-  { value: 'increment', label: 'Increment' },
-  { value: 'remove', label: 'Remove' },
-  { value: 'clear', label: 'Clear' },
-];
-
-const SCHEMA_TYPES = [
-  { value: 'string', label: 'string' },
-  { value: 'number', label: 'number' },
-  { value: 'integer', label: 'integer' },
-  { value: 'boolean', label: 'boolean' },
-  { value: 'array', label: 'array' },
-  { value: 'object', label: 'object' },
-];
-
-const ROLE_OPTIONS = [
-  { value: 'system', label: 'System' },
-  { value: 'user', label: 'User' },
-  { value: 'assistant', label: 'Assistant' },
-];
-
 export function KeyValueListField({ field, name }: FieldProps) {
+  const typeOptions = useOptions('mappingTypes');
   const columns: ListColumn[] = [
     { key: 'key', placeholder: field.placeholderKey ?? 'key' },
     { key: 'value', placeholder: field.placeholderVal ?? 'value' },
   ];
   if (field.showType) {
-    columns.push({ key: 'type', type: 'select', options: TYPE_OPTIONS, width: 'max-w-[110px]' });
+    columns.push({ key: 'type', type: 'select', options: typeOptions, width: 'max-w-[110px]' });
   }
   return (
     <ListField
@@ -71,6 +40,7 @@ export function KeyValueListField({ field, name }: FieldProps) {
 }
 
 export function MessageListField({ field, name }: FieldProps) {
+  const roles = useOptions('messageRoles');
   return (
     <ListField
       field={field}
@@ -78,7 +48,7 @@ export function MessageListField({ field, name }: FieldProps) {
       addLabel="Add Message"
       emptyRow={{ role: 'user', content: '' }}
       columns={[
-        { key: 'role', type: 'select', options: ROLE_OPTIONS, width: 'max-w-[120px]' },
+        { key: 'role', type: 'select', options: roles, width: 'max-w-[120px]' },
         { key: 'content', type: 'textarea', placeholder: 'Message content or {{token}}' },
       ]}
     />
@@ -86,6 +56,7 @@ export function MessageListField({ field, name }: FieldProps) {
 }
 
 export function MappingListField({ field, name }: FieldProps) {
+  const typeOptions = useOptions('mappingTypes');
   return (
     <ListField
       field={field}
@@ -95,13 +66,14 @@ export function MappingListField({ field, name }: FieldProps) {
       columns={[
         { key: 'target', placeholder: 'target field' },
         { key: 'source', placeholder: 'value or {{path}}' },
-        { key: 'type', type: 'select', options: TYPE_OPTIONS, width: 'max-w-[110px]' },
+        { key: 'type', type: 'select', options: typeOptions, width: 'max-w-[110px]' },
       ]}
     />
   );
 }
 
 export function StateUpdateListField({ field, name }: FieldProps) {
+  const ops = useOptions('stateOps');
   return (
     <ListField
       field={field}
@@ -110,7 +82,7 @@ export function StateUpdateListField({ field, name }: FieldProps) {
       emptyRow={{ path: '', op: 'set', value: '' }}
       columns={[
         { key: 'path', placeholder: 'variable path' },
-        { key: 'op', type: 'select', options: STATE_OPS, width: 'max-w-[110px]' },
+        { key: 'op', type: 'select', options: ops, width: 'max-w-[110px]' },
         { key: 'value', placeholder: 'value or {{path}}' },
       ]}
     />
@@ -133,6 +105,7 @@ export function QueryVarListField({ field, name }: FieldProps) {
 }
 
 export function SchemaBuilderField({ field, name }: FieldProps) {
+  const schemaTypes = useOptions('schemaTypes');
   return (
     <ListField
       field={field}
@@ -141,7 +114,7 @@ export function SchemaBuilderField({ field, name }: FieldProps) {
       emptyRow={{ name: '', type: 'string', description: '', required: false }}
       columns={[
         { key: 'name', placeholder: 'fieldName' },
-        { key: 'type', type: 'select', options: SCHEMA_TYPES, width: 'max-w-[110px]' },
+        { key: 'type', type: 'select', options: schemaTypes, width: 'max-w-[110px]' },
         { key: 'description', placeholder: 'description' },
       ]}
     />

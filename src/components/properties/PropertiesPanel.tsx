@@ -4,6 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { AgentSettingsPanel } from '@/components/properties/AgentSettingsPanel';
 import { SchemaForm } from '@/components/properties/SchemaForm';
+import {
+  AGENT_SETTINGS_ICON,
+  FALLBACK_NODE_COLOR,
+  nodeColor,
+  nodeIcon,
+} from '@/lib/registry/nodePresentation';
 import { cn } from '@/lib/utils/cn';
 import { selectSelectedNode, useWorkflowStore } from '@/store/useWorkflowStore';
 
@@ -85,9 +91,9 @@ export function PropertiesPanel() {
       <header className="flex items-start gap-2 border-b border-border p-3">
         <span
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white"
-          style={{ background: node ? (definition?.color ?? '#6b7280') : '#6b7280' }}
+          style={{ background: node ? nodeColor(definition) : FALLBACK_NODE_COLOR }}
         >
-          <i className={node ? (definition?.icon ?? 'bi-circle') : 'bi-diagram-3'} />
+          <i className={node ? nodeIcon(definition) : AGENT_SETTINGS_ICON} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] font-semibold">

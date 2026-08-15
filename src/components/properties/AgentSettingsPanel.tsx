@@ -2,17 +2,11 @@
 
 import { useState } from 'react';
 
+import { useOptions } from '@/lib/registry/optionSets';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import type { AgentDraft } from '@/types/agent';
 
 /** Shown when nothing is selected — the workflow's own settings. */
-
-const INVOCATION_TYPES = [
-  { value: '', label: '— Select —' },
-  { value: 'request_response', label: 'Request / Response' },
-  { value: 'event', label: 'Event' },
-  { value: 'scheduled', label: 'Scheduled' },
-];
 
 const FLAGS: { key: keyof AgentDraft; label: string }[] = [
   { key: 'isDisabled', label: 'Disabled' },
@@ -80,6 +74,7 @@ function JsonAccordion({
 export function AgentSettingsPanel() {
   const agent = useWorkflowStore((s) => s.currentAgent);
   const patchAgent = useWorkflowStore((s) => s.patchAgent);
+  const invocationTypes = useOptions('invocationTypes');
 
   if (!agent) {
     return (
@@ -149,7 +144,8 @@ export function AgentSettingsPanel() {
             value={agent.invocationType}
             onChange={(event) => patchAgent({ invocationType: event.target.value })}
           >
-            {INVOCATION_TYPES.map((option) => (
+            <option value="">— Select —</option>
+            {invocationTypes.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

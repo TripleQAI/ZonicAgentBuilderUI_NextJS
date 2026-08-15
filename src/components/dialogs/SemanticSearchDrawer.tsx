@@ -5,15 +5,9 @@ import { toast } from 'sonner';
 
 import { Modal } from '@/components/dialogs/Modal';
 import { api } from '@/lib/api/client';
+import { useOptions } from '@/lib/registry/optionSets';
 import { toAgentJson } from '@/lib/serialization/agentDocument';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
-
-const DOMAINS = [
-  { value: '', label: '— Select domain —' },
-  { value: 'energy', label: 'Energy' },
-  { value: 'facilities', label: 'Facilities' },
-  { value: 'risk', label: 'Risk' },
-];
 
 /**
  * Semantic search configuration.
@@ -38,6 +32,7 @@ export function SemanticSearchDrawer({
   const [keywords, setKeywords] = useState('');
   const [useCases, setUseCases] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'indexing'>('idle');
+  const domains = useOptions('semanticDomains');
 
   useEffect(() => {
     if (!open || !agent) return;
@@ -146,7 +141,8 @@ export function SemanticSearchDrawer({
               value={domain}
               onChange={(event) => setDomain(event.target.value)}
             >
-              {DOMAINS.map((option) => (
+              <option value="">— Select domain —</option>
+              {domains.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>

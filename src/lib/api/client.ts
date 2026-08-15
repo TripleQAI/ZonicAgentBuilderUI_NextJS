@@ -115,6 +115,9 @@ export const api = {
 
   getTools: () => request<{ tools: ToolDef[] }>(endpoints.tools()).then((r) => r.tools),
 
+  getOptionSets: () =>
+    request<Record<string, { value: string; label: string }[]>>(endpoints.optionSets()),
+
   validateWorkflow: (document: AgentDocument) =>
     request<ValidationResult>(endpoints.validate(), {
       method: 'POST',

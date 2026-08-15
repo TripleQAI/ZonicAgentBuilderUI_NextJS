@@ -5,6 +5,7 @@ import { useMemo, useState, type DragEvent } from 'react';
 
 import { PALETTE_DND_TYPE } from '@/components/canvas/FlowCanvas';
 import { api } from '@/lib/api/client';
+import { nodeColor, nodeIcon } from '@/lib/registry/nodePresentation';
 import { cn } from '@/lib/utils/cn';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import type { AgentSummary } from '@/types/agent';
@@ -151,9 +152,9 @@ export function LeftSidebar({
               >
                 <span
                   className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] text-white"
-                  style={{ background: definition.color || '#6b7280' }}
+                  style={{ background: nodeColor(definition) }}
                 >
-                  <i className={definition.icon || 'bi-circle'} />
+                  <i className={nodeIcon(definition)} />
                 </span>
                 <span className="truncate text-[12px]">{definition.label}</span>
               </div>

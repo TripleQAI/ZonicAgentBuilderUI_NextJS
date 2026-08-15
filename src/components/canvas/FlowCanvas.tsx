@@ -18,6 +18,7 @@ import { useCallback, useMemo, type DragEvent } from 'react';
 
 import { BendableEdge } from '@/components/canvas/BendableEdge';
 import { RegistryNode, type RegistryNodeData } from '@/components/canvas/RegistryNode';
+import { nodeColor } from '@/lib/registry/nodePresentation';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import type { WorkflowEdge, WorkflowNode } from '@/types/agent';
 
@@ -213,16 +214,20 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
           strokeDasharray: '6 3',
         }}
       >
-        <Background variant={BackgroundVariant.Dots} gap={18} size={1} color="#2a2a3d" />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={18}
+          size={1}
+          // The dot grid is part of the palette, so it reads a token.
+          color="var(--border-color)"
+        />
         <Controls showInteractive={false} />
         <MiniMap
           pannable
           zoomable
           nodeColor={(node) => {
             const data = node.data as RegistryNodeData;
-            return (
-              useWorkflowStore.getState().getNodeTypeDef(data.nodeType)?.color ?? '#6b7280'
-            );
+            return nodeColor(useWorkflowStore.getState().getNodeTypeDef(data.nodeType));
           }}
           maskColor="rgba(19,19,31,.7)"
         />
