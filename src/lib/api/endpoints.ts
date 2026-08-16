@@ -6,9 +6,19 @@
  * here — still one place, still the only place a URL string appears.
  */
 
-export const API_BASE = (
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000'
-).replace(/\/$/, '');
+/**
+ * Empty by default, which makes every URL below relative — a same-origin
+ * request that `next.config.ts` rewrites to the API server. No cross-origin
+ * request, so no CORS preflight and nothing for the backend to allow-list.
+ *
+ * Set NEXT_PUBLIC_API_BASE_URL to call the API directly instead. That is a
+ * cross-origin request, so the API must return `Access-Control-Allow-Origin`
+ * for this app's exact origin — add it to the backend's CORS_ORIGINS.
+ */
+export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(/\/$/, '');
+
+/** True when requests go straight to the API rather than through the proxy. */
+export const IS_DIRECT = API_BASE !== '';
 
 const V1 = `${API_BASE}/api/v1`;
 

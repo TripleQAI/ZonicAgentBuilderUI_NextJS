@@ -5,7 +5,7 @@
  * (`{error, code, traceId}`), so there is exactly one place that unpacks it.
  */
 
-import { endpoints } from '@/lib/api/endpoints';
+import { API_BASE, IS_DIRECT, endpoints } from '@/lib/api/endpoints';
 import type {
   AgentDocument,
   AgentSummary,
@@ -39,7 +39,18 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       },
     });
   } catch {
-    throw new ApiError(`Cannot reach the API at ${API_HOST}`, 0, 'network_error');
+    // A same-origin request failing here means the proxy target is down or
+    // misconfigured; a direct one usually means CORS or the wrong host. Say
+    // which, because the browser console will not.
+    throw new ApiError(
+      IS_DIRECT
+        ? `Cannot reach the API at ${API_BASE}. It must be running and must allow ` +
+          `this origin (${globalThis.location?.origin ?? 'unknown'}) in CORS_ORIGINS.`
+        : 'Cannot reach the API. Requests are proxied by this server — check that ' +
+          'the backend is running on API_BASE_URL (default http://localhost:8000).',
+      0,
+      'network_error',
+    );
   }
 
   if (!response.ok) {
@@ -55,8 +66,6 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
-
-const API_HOST = endpoints.health().replace('/health', '');
 
 export const api = {
   listAgents: () =>
