@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { EXECUTORS } from './executors';
-import { resolveTokens, runMock } from './mockEngine';
+import { EXECUTORS } from '@/lib/runtime/executors';
+import { resolveTokens, runMock } from '@/lib/runtime/mockEngine';
 import { emptyAgent } from '@/lib/serialization/agentDocument';
 import type { AgentDraft, WorkflowEdge, WorkflowNode } from '@/types/agent';
 

@@ -15,7 +15,7 @@ async function loadEndpoints(base: string | undefined) {
   vi.resetModules();
   if (base === undefined) delete process.env.NEXT_PUBLIC_API_BASE_URL;
   else process.env.NEXT_PUBLIC_API_BASE_URL = base;
-  return import('./endpoints');
+  return import('@/lib/api/endpoints');
 }
 
 beforeEach(() => {

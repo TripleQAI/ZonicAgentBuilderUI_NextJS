@@ -18,8 +18,11 @@ import { useCallback, useMemo, type DragEvent } from 'react';
 
 import { BendableEdge } from '@/components/canvas/BendableEdge';
 import { RegistryNode, type RegistryNodeData } from '@/components/canvas/RegistryNode';
+import { deriveHandles } from '@/lib/registry/nodeHandles';
 import { nodeColor } from '@/lib/registry/nodePresentation';
+import { getDotPath } from '@/lib/utils/dotPath';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
+import type { DerivedHandle } from '@/lib/registry/nodeHandles';
 import type { WorkflowEdge, WorkflowNode } from '@/types/agent';
 
 const nodeTypes = { registry: RegistryNode };
@@ -30,6 +33,7 @@ export const PALETTE_DND_TYPE = 'application/x-zonic-node-type';
 /** Stored node -> React Flow node. The shapes already line up. */
 function toFlowNode(
   node: WorkflowNode,
+  handles: { targets: DerivedHandle[]; sources: DerivedHandle[] },
   childLabel: string | null,
   childResolved: boolean | null,
 ): Node<RegistryNodeData> {
@@ -41,6 +45,8 @@ function toFlowNode(
     data: {
       name: node.name,
       nodeType: node.type,
+      targets: handles.targets,
+      sources: handles.sources,
       childLabel,
       childResolved,
     },
@@ -77,12 +83,17 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
   const clearSelection = useWorkflowStore((s) => s.clearSelection);
 
   const { screenToFlowPosition } = useReactFlow();
+  const semantics = useWorkflowStore((s) => s.nodeSemantics);
+  const registry = useWorkflowStore((s) => s.nodeRegistry);
 
   /** Sub Flow nodes show their child's name and whether it resolved. */
   const childInfo = useCallback(
     (node: WorkflowNode): [string | null, boolean | null] => {
-      if (node.type !== 'workflow') return [null, null];
-      const childId = (node.config?.agenticWorkflowId as string | undefined) ?? null;
+      // Which types reference a child, and where they keep the id, is declared
+      // in node_semantics.json rather than assumed here.
+      const path = semantics.childReference?.[node.type];
+      if (!path) return [null, null];
+      const childId = (getDotPath(node, path) as string | undefined) ?? null;
       if (!childId) return [null, null];
       const known = allAgentsById[childId];
       if (known) {
@@ -97,13 +108,29 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
       }
       return ['Unresolved child', false];
     },
-    [allAgentsById, relationshipMap],
+    [allAgentsById, relationshipMap, semantics],
   );
 
-  const nodes = useMemo(
-    () => (agent?.nodes ?? []).map((n) => toFlowNode(n, ...childInfo(n))),
-    [agent?.nodes, childInfo],
-  );
+  const nodes = useMemo(() => {
+    const stored = agent?.nodes ?? [];
+    // Handoff handles are labelled with the target node's name.
+    const names = Object.fromEntries(stored.map((n) => [n.id, n.name]));
+    return stored.map((n) =>
+      toFlowNode(
+        n,
+        deriveHandles(
+          n,
+          registry.find((t) => t.type === n.type),
+          semantics,
+          names,
+          agent?.edges ?? [],
+        ),
+        ...childInfo(n),
+      ),
+    );
+    // `registry` is a dependency on purpose: it arrives asynchronously, and the
+    // handles cannot be derived until it does.
+  }, [agent?.nodes, agent?.edges, childInfo, registry, semantics]);
   const edges = useMemo(() => (agent?.edges ?? []).map(toFlowEdge), [agent?.edges]);
 
   const onNodesChange = useCallback(
@@ -165,11 +192,12 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
   const onNodeDoubleClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       const stored = agent?.nodes.find((n) => n.id === node.id);
-      if (stored?.type !== 'workflow') return;
-      const childId = stored.config?.agenticWorkflowId as string | undefined;
+      const path = stored ? semantics.childReference?.[stored.type] : undefined;
+      if (!stored || !path) return;
+      const childId = getDotPath(stored, path) as string | undefined;
       if (childId) onOpenSubFlow(childId);
     },
-    [agent?.nodes, onOpenSubFlow],
+    [agent?.nodes, onOpenSubFlow, semantics],
   );
 
   return (

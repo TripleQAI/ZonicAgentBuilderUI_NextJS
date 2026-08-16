@@ -133,7 +133,15 @@ export function NodeSelectField({ field, name }: FieldProps) {
   );
 }
 
-export function NodeMultiSelectField({ field, name }: FieldProps) {
+/**
+ * `node_multiselect` is the handoff editor — the registry uses it for exactly
+ * that, and each entry is a wire on the canvas as well as a config value. It is
+ * re-exported rather than wrapped so there is one implementation, not two.
+ */
+export { HandoffTargetsField as NodeMultiSelectField } from '@/components/fields/handoff';
+
+/** Kept for any future schema that needs a plain multi-select of nodes. */
+export function PlainNodeMultiSelect({ field, name }: FieldProps) {
   const { register } = useFormContext();
   const options = useNodeOptions();
   const selected = (useWatch({ name }) as string[] | undefined) ?? [];

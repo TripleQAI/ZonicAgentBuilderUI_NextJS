@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { FIELD_COMPONENTS, resolveFieldComponent } from './index';
+import { FIELD_COMPONENTS, resolveFieldComponent } from '@/components/fields';
 
 /**
  * The registry must cover every widget type the node registry can declare.

@@ -25,6 +25,7 @@ export function BuilderShell() {
   const [dialog, setDialog] = useState<DialogName | null>(null);
 
   const setNodeRegistry = useWorkflowStore((s) => s.setNodeRegistry);
+  const setNodeSemantics = useWorkflowStore((s) => s.setNodeSemantics);
   const loadAgent = useWorkflowStore((s) => s.loadAgent);
   const registerAgent = useWorkflowStore((s) => s.registerAgent);
   const setRelationshipMap = useWorkflowStore((s) => s.setRelationshipMap);
@@ -42,6 +43,18 @@ export function BuilderShell() {
   useEffect(() => {
     if (registry.data) setNodeRegistry(registry.data);
   }, [registry.data, setNodeRegistry]);
+
+  // Which node types reference a child, hand off, or branch. The canvas needs
+  // it to draw handles; the handoff editor needs it to know where the list is.
+  const semantics = useQuery({
+    queryKey: ['node-semantics'],
+    queryFn: api.getNodeSemantics,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (semantics.data) setNodeSemantics(semantics.data);
+  }, [semantics.data, setNodeSemantics]);
 
   const agents = useQuery({ queryKey: ['agents'], queryFn: api.listAgents });
 

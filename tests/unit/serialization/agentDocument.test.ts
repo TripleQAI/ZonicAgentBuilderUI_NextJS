@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { emptyAgent, fromAgentJson, toAgentJson } from './agentDocument';
+import { emptyAgent, fromAgentJson, toAgentJson } from '@/lib/serialization/agentDocument';
 
 /**
  * The raw_json overlay is the contract most likely to break silently, so it

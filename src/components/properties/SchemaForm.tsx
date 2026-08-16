@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { resolveFieldComponent } from '@/components/fields';
@@ -71,15 +71,34 @@ function SectionRenderer({ section }: { section: FormSection }) {
   );
 }
 
-/** Pushes every form change into the store as a dot-path patch. */
+/** Pushes form changes into the store as dot-path patches. */
 function FormSync({ node }: { node: WorkflowNode }) {
   const values = useWatch();
   const updateNodePath = useWorkflowStore((s) => s.updateNodePath);
+  /** What the store already holds, so only real edits are written. */
+  const synced = useRef<Record<string, string> | null>(null);
 
   useEffect(() => {
     if (!values || typeof values !== 'object') return;
-    // The form is flat by dot-path, so each top-level key is one patch.
-    for (const [path, value] of Object.entries(values as Record<string, unknown>)) {
+    const current = values as Record<string, unknown>;
+
+    // First pass is the form seeding itself from the node. Writing then would
+    // mark the workflow unsaved just for opening a node, and the "unsaved
+    // changes" dot would appear without the user touching anything.
+    if (synced.current === null) {
+      synced.current = Object.fromEntries(
+        Object.entries(current).map(([path, value]) => [path, JSON.stringify(value ?? null)]),
+      );
+      return;
+    }
+
+    // The form is flat by dot-path, so each top-level key is one patch. Only
+    // the ones that actually changed are pushed — a keystroke in one field
+    // must not rewrite every other field.
+    for (const [path, value] of Object.entries(current)) {
+      const encoded = JSON.stringify(value ?? null);
+      if (synced.current[path] === encoded) continue;
+      synced.current[path] = encoded;
       updateNodePath(node.id, path, value);
     }
   }, [node.id, updateNodePath, values]);

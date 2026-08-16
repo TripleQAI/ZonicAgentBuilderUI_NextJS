@@ -14,6 +14,7 @@ import type {
   SaveResult,
   ValidationResult,
 } from '@/types/agent';
+import type { NodeSemantics } from '@/lib/registry/nodeSemantics';
 import type { NodeTypeDef, ToolDef } from '@/types/registry';
 
 export class ApiError extends Error {
@@ -126,6 +127,8 @@ export const api = {
 
   getOptionSets: () =>
     request<Record<string, { value: string; label: string }[]>>(endpoints.optionSets()),
+
+  getNodeSemantics: () => request<NodeSemantics>(endpoints.nodeSemantics()),
 
   validateWorkflow: (document: AgentDocument) =>
     request<ValidationResult>(endpoints.validate(), {

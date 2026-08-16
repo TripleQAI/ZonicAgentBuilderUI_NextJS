@@ -35,6 +35,7 @@ export const endpoints = {
   nodeTypes: () => `${V1}/node-types`,
   tools: () => `${V1}/tools`,
   optionSets: () => `${V1}/option-sets`,
+  nodeSemantics: () => `${V1}/node-semantics`,
   validate: () => `${V1}/workflows/validate`,
   runMock: () => `${V1}/workflows/run-mock`,
   health: () => `${API_BASE}/health`,

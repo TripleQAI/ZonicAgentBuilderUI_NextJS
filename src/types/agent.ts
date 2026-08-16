@@ -37,8 +37,15 @@ export interface WorkflowEdge {
   sourceHandle?: string | null;
   targetHandle?: string | null;
   type?: string;
-  /** `data.offset` carries the user-dragged bezier bend and is persisted. */
-  data?: { sourceType?: string | null; targetType?: string | null; offset?: Position };
+  data?: {
+    sourceType?: string | null;
+    targetType?: string | null;
+    /** The user-dragged bezier bend. Persisted with the edge. */
+    offset?: Position;
+    /** Marks the wire as the visible half of an Agent's config.handoffTarget,
+     *  so deleting it also removes the target. Set by the source app too. */
+    handoff?: boolean;
+  };
   style?: Record<string, unknown>;
   selected?: boolean;
   deletable?: boolean;

@@ -20,6 +20,9 @@ import type {
   WorkflowEdge,
   WorkflowNode,
 } from '@/types/agent';
+import { handoffPathFor } from '@/lib/registry/nodeFields';
+import { HANDOFF_PREFIX } from '@/lib/registry/nodeHandles';
+import type { NodeSemantics } from '@/lib/registry/nodeSemantics';
 import type { NodeTypeDef } from '@/types/registry';
 
 function nextId(prefix: string): string {
@@ -32,6 +35,15 @@ function uniqueName(existing: WorkflowNode[], prefix: string): string {
   let counter = 1;
   while (taken.has(`${prefix}_${counter}`)) counter += 1;
   return `${prefix}_${counter}`;
+}
+
+function getDotPath(source: unknown, dotPath: string): unknown {
+  let cursor: unknown = source;
+  for (const key of dotPath.split('.')) {
+    if (cursor == null || typeof cursor !== 'object') return undefined;
+    cursor = (cursor as Record<string, unknown>)[key];
+  }
+  return cursor;
 }
 
 function setDotPath(target: Record<string, unknown>, dotPath: string, value: unknown): void {
@@ -51,6 +63,7 @@ export interface WorkflowState {
   allAgentsById: Record<string, AgentDocument>;
   relationshipMap: RelationshipMap | null;
   nodeRegistry: NodeTypeDef[];
+  nodeSemantics: NodeSemantics;
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   isReadOnly: boolean;
@@ -59,7 +72,11 @@ export interface WorkflowState {
   formEpoch: number;
 
   setNodeRegistry: (types: NodeTypeDef[]) => void;
+  setNodeSemantics: (semantics: NodeSemantics) => void;
   getNodeTypeDef: (type: string) => NodeTypeDef | undefined;
+  /** Config and canvas edges for one node's handoffs, updated together.
+   *  `path` is the field's own dot-path, so nothing here names a config key. */
+  setHandoffTargets: (nodeId: string, path: string, targetIds: string[]) => void;
 
   loadAgent: (document: AgentDocument) => void;
   registerAgent: (document: AgentDocument) => void;
@@ -100,6 +117,7 @@ export const useWorkflowStore = create<WorkflowState>()(
     allAgentsById: {},
     relationshipMap: null,
     nodeRegistry: [],
+    nodeSemantics: {},
     selectedNodeId: null,
     selectedEdgeId: null,
     isReadOnly: false,
@@ -111,7 +129,63 @@ export const useWorkflowStore = create<WorkflowState>()(
         state.nodeRegistry = types;
       }),
 
+    setNodeSemantics: (semantics) =>
+      set((state) => {
+        state.nodeSemantics = semantics;
+      }),
+
     getNodeTypeDef: (type) => get().nodeRegistry.find((t) => t.type === type),
+
+    setHandoffTargets: (nodeId, path, targetIds) =>
+      set((state) => {
+        const agent = state.currentAgent;
+        const node = agent?.nodes.find((n) => n.id === nodeId);
+        if (!agent || !node || !path) return;
+
+        const wanted = targetIds.filter(Boolean);
+        setDotPath(node as unknown as Record<string, unknown>, path, wanted);
+
+        // Drop edges for targets that are no longer listed.
+        agent.edges = agent.edges.filter(
+          (e) =>
+            !(
+              e.source === nodeId &&
+              e.data?.handoff === true &&
+              !wanted.includes(e.target)
+            ),
+        );
+
+        // Add one edge per new target, on that target's own handle.
+        for (const targetId of wanted) {
+          const existing = agent.edges.find(
+            (e) => e.source === nodeId && e.target === targetId,
+          );
+          if (existing) {
+            // Re-use a wire that is already there rather than doubling it up.
+            existing.sourceHandle = `${HANDOFF_PREFIX}${targetId}`;
+            existing.data = { ...(existing.data ?? {}), handoff: true };
+            continue;
+          }
+          agent.edges.push({
+            id: nextId('edge'),
+            source: nodeId,
+            target: targetId,
+            sourceHandle: `${HANDOFF_PREFIX}${targetId}`,
+            targetHandle: null,
+            type: 'default',
+            data: {
+              handoff: true,
+              sourceType: node.type,
+              targetType: agent.nodes.find((n) => n.id === targetId)?.type ?? null,
+            },
+            style: { strokeWidth: 3 },
+            selected: false,
+            deletable: true,
+          });
+        }
+
+        state.isDirty = true;
+      }),
 
     loadAgent: (document) =>
       set((state) => {
@@ -182,8 +256,15 @@ export const useWorkflowStore = create<WorkflowState>()(
       set((state) => {
         const node = state.currentAgent?.nodes.find((n) => n.id === nodeId);
         if (!node) return;
-        Object.assign(node, patch);
-        if (patch.config) node.config = { ...node.config, ...patch.config };
+        // `config` is merged, not replaced, so a caller can set one key without
+        // dropping the rest. It has to be pulled out of the patch first —
+        // assigning the whole patch would overwrite node.config, leaving the
+        // merge below spreading the new value into itself. (The source app has
+        // the same lines in the other order, which quietly makes its merge a
+        // no-op; nothing there passed `config`, so it never showed.)
+        const { config, ...rest } = patch;
+        Object.assign(node, rest);
+        if (config) node.config = { ...node.config, ...config };
         state.isDirty = true;
       }),
 
@@ -269,8 +350,32 @@ export const useWorkflowStore = create<WorkflowState>()(
 
     deleteEdge: (edgeId) =>
       set((state) => {
-        if (!state.currentAgent) return;
-        state.currentAgent.edges = state.currentAgent.edges.filter((e) => e.id !== edgeId);
+        const agent = state.currentAgent;
+        if (!agent) return;
+        const edge = agent.edges.find((e) => e.id === edgeId);
+
+        // A handoff edge is the visible half of config.handoffTarget. Deleting
+        // the wire has to remove the target too, or the node is left rendering
+        // a handle that connects to nothing.
+        if (edge?.data?.handoff === true) {
+          const source = agent.nodes.find((n) => n.id === edge.source);
+          const path = source
+            ? (handoffPathFor(state.nodeRegistry.find((t) => t.type === source.type)) ??
+              state.nodeSemantics.handoffTargets?.[source.type])
+            : undefined;
+          if (source && path) {
+            const current = (getDotPath(source, path) ?? []) as string[];
+            if (Array.isArray(current)) {
+              setDotPath(
+                source as unknown as Record<string, unknown>,
+                path,
+                current.filter((id) => id !== edge.target),
+              );
+            }
+          }
+        }
+
+        agent.edges = agent.edges.filter((e) => e.id !== edgeId);
         if (state.selectedEdgeId === edgeId) state.selectedEdgeId = null;
         state.isDirty = true;
       }),
