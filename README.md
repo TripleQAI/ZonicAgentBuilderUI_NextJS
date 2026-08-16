@@ -1,4 +1,4 @@
-# Zonic Agent Builder — UI (Next.js)
+# Zonic Agent Builder — UI (Next.js) V2
 
 Visual orchestration editor for multi-agent AI workflows. Replaces the
 server-rendered jQuery page from the Django monolith with a Next.js App Router
