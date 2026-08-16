@@ -4,6 +4,7 @@
 tests/
   setup.ts                      resets the Zustand store between tests
   unit/
+    agent/        flowVariables.test.ts    variable definitions ⇄ editor rows
     api/          endpoints.test.ts        proxied vs direct URL building
     components/   fieldRegistry.test.ts    all 25 widget types resolve
                   schemaForm.test.tsx      the properties form generator
@@ -45,6 +46,10 @@ These are unit tests over the parts where a mistake is silent:
 - **Dot-paths.** A field's `key` is its form name, its read path and its write
   path at once. Everything in the properties panel rides on those two
   functions.
+- **Variable definitions.** Both directions are lossy if written carelessly:
+  the stored object is keyed by name, so a duplicate drops a variable, and
+  rebuilding a definition from the four displayed fields discards whatever else
+  it carried. Opening a drawer must never cost you data.
 
 Most components are deliberately not covered. They are thin — read the
 registry, call a store action — so a DOM test would mostly assert that React

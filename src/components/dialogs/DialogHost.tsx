@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { FlowVariablesDrawer } from '@/components/dialogs/FlowVariablesDrawer';
 import { ImportDialog } from '@/components/dialogs/ImportDialog';
 import { JsonViewerDrawer } from '@/components/dialogs/JsonViewerDrawer';
 import { KeyValueDrawer } from '@/components/dialogs/KeyValueDrawer';
@@ -81,12 +82,9 @@ export function DialogHost({
       <MockRunDialog open={open === 'mock-run'} onClose={onClose} />
       <SemanticSearchDrawer open={open === 'semantic'} onClose={onClose} />
 
-      <KeyValueDrawer
+      <FlowVariablesDrawer
         open={open === 'flow-variables'}
         onClose={onClose}
-        title="Flow Variables"
-        icon="bi-database"
-        description="Reference them in any node field as {{variableName}}."
         value={(agent?.variables ?? {}) as Record<string, unknown>}
         onSave={(next) => patchAgent({ variables: next })}
       />

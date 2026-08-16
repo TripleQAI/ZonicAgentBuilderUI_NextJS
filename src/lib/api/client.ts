@@ -126,7 +126,9 @@ export const api = {
   getTools: () => request<{ tools: ToolDef[] }>(endpoints.tools()).then((r) => r.tools),
 
   getOptionSets: () =>
-    request<Record<string, { value: string; label: string }[]>>(endpoints.optionSets()),
+    request<Record<string, { value: string; label: string; color?: string }[]>>(
+      endpoints.optionSets(),
+    ),
 
   getNodeSemantics: () => request<NodeSemantics>(endpoints.nodeSemantics()),
 

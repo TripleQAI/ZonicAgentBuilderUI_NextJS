@@ -1,7 +1,7 @@
 'use client';
 
 import { EdgeLabelRenderer, useReactFlow, type EdgeProps } from '@xyflow/react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 
@@ -20,12 +20,22 @@ import { useWorkflowStore } from '@/store/useWorkflowStore';
  * The midpoint expression is the analytic value of the curve at t = 0.5, which
  * is why the drag handle tracks the visual centre of the bend rather than
  * drifting away from it.
+ *
+ * Hovering the wire also reveals a delete button, as the source did. There it
+ * was an SVG circle inside the edge's own `<g>`, so moving between the wire and
+ * the button never left the group and the button never flickered. React Flow
+ * portals overlay content out of the SVG, so the same continuity is had by
+ * anchoring the two controls edge-to-edge in one hover target that straddles
+ * the midpoint — the wire passes underneath it.
  */
 
 interface Offset {
   x: number;
   y: number;
 }
+
+/** Grip diameter in px. The controls are laid out from it, so it is named. */
+const GRIP_SIZE = 10;
 
 function bezierPath(
   sx: number,
@@ -64,9 +74,11 @@ export function BendableEdge({
   data,
 }: EdgeProps) {
   const setEdgeOffset = useWorkflowStore((s) => s.setEdgeOffset);
+  const deleteEdge = useWorkflowStore((s) => s.deleteEdge);
   const isReadOnly = useWorkflowStore((s) => s.isReadOnly);
   const { getZoom } = useReactFlow();
   const dragStart = useRef<{ x: number; y: number; offset: Offset } | null>(null);
+  const [hovered, setHovered] = useState(false);
 
   const offset = ((data as { offset?: Offset } | undefined)?.offset ?? {
     x: 0,
@@ -108,6 +120,19 @@ export function BendableEdge({
     if (!isReadOnly) setEdgeOffset(id, { x: 0, y: 0 });
   }, [id, isReadOnly, setEdgeOffset]);
 
+  const onDelete = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      // Without this the click reaches the pane and only deselects.
+      event.stopPropagation();
+      deleteEdge(id);
+    },
+    [deleteEdge, id],
+  );
+
+  // Selection counts as well as hover, so the button is reachable from the
+  // keyboard path too: tab to the edge, then click what selection reveals.
+  const showDelete = (hovered || Boolean(selected)) && !isReadOnly;
+
   return (
     <>
       <path
@@ -118,22 +143,52 @@ export function BendableEdge({
         fill="none"
       />
       {/* A fat transparent stroke makes the thin curve easy to click. */}
-      <path d={path} fill="none" strokeWidth={16} stroke="transparent" />
+      <path
+        d={path}
+        fill="none"
+        strokeWidth={16}
+        stroke="transparent"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      />
 
       <EdgeLabelRenderer>
-        <button
-          type="button"
-          title="Drag to bend · double-click to straighten"
-          onPointerDown={onPointerDown}
-          onDoubleClick={onDoubleClick}
-          className="nodrag nopan pointer-events-auto absolute h-2.5 w-2.5 cursor-grab rounded-full border transition-opacity"
+        {/* Anchored by its left edge rather than centred, so the grip stays put
+            on the midpoint whether or not the delete button is showing. */}
+        <div
+          className="nodrag nopan pointer-events-auto absolute flex items-center"
           style={{
-            transform: `translate(-50%, -50%) translate(${mid.x}px, ${mid.y}px)`,
-            background: selected ? 'var(--accent)' : 'var(--bg-panel)',
-            borderColor: selected ? 'var(--accent)' : 'var(--border-color)',
-            opacity: selected || offset.x !== 0 || offset.y !== 0 ? 1 : 0.35,
+            transform: `translate(0, -50%) translate(${mid.x - GRIP_SIZE / 2}px, ${mid.y}px)`,
           }}
-        />
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+        >
+          <button
+            type="button"
+            title="Drag to bend · double-click to straighten"
+            onPointerDown={onPointerDown}
+            onDoubleClick={onDoubleClick}
+            className="h-2.5 w-2.5 shrink-0 cursor-grab rounded-full border transition-opacity"
+            style={{
+              background: selected ? 'var(--accent)' : 'var(--bg-panel)',
+              borderColor: selected ? 'var(--accent)' : 'var(--border-color)',
+              opacity: selected || hovered || offset.x !== 0 || offset.y !== 0 ? 1 : 0.35,
+            }}
+          />
+
+          {showDelete && (
+            <button
+              type="button"
+              title="Delete connection"
+              aria-label="Delete connection"
+              onClick={onDelete}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border border-border bg-panel text-[9px] text-text-primary transition-colors hover:border-danger hover:bg-danger hover:text-panel"
+            >
+              <i className="bi-x-lg" />
+            </button>
+          )}
+        </div>
       </EdgeLabelRenderer>
     </>
   );
