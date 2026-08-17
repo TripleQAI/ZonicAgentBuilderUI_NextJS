@@ -38,7 +38,7 @@ an empty shell if it cannot reach the API.
 app/builder            route shell
   BuilderShell         owns load / save / export; everything else subscribes
     AppHeader          name, counts, breadcrumb, toolbar, agent explorer
-    LeftSidebar        node palette (HTML5 drag source)
+    LeftSidebar        node palette, grouped by category (HTML5 drag source)
     FlowCanvas         React Flow: RegistryNode, BendableEdge, minimap
     PropertiesPanel    resizable; SchemaForm or AgentSettingsPanel
     DialogHost         all modal and drawer surfaces

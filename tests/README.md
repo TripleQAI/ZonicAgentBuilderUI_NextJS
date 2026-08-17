@@ -10,7 +10,8 @@ tests/
     components/   fieldRegistry.test.ts    all 25 widget types resolve
                   propertiesPanel.test.ts  expand / collapse all sections
                   schemaForm.test.tsx      the properties form generator
-    registry/     nodeHandles.test.ts      which handles a node renders
+    registry/     nodeCategories.test.ts   palette grouping
+                  nodeHandles.test.ts      which handles a node renders
     runtime/      mockEngine.test.ts       graph traversal, branches, loop guard
     serialization/agentDocument.test.ts    the raw_json overlay round trip
     store/        canvasEditing.test.ts    node and edge editing

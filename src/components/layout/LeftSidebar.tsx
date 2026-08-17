@@ -5,7 +5,9 @@ import { useMemo, useState, type DragEvent } from 'react';
 
 import { PALETTE_DND_TYPE } from '@/components/canvas/FlowCanvas';
 import { api } from '@/lib/api/client';
+import { groupNodeTypes } from '@/lib/registry/nodeCategories';
 import { nodeColor, nodeIcon } from '@/lib/registry/nodePresentation';
+import { useOptions } from '@/lib/registry/optionSets';
 import { cn } from '@/lib/utils/cn';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 
@@ -19,6 +21,7 @@ import { useWorkflowStore } from '@/store/useWorkflowStore';
 export function LeftSidebar() {
   const registry = useWorkflowStore((s) => s.nodeRegistry);
   const isReadOnly = useWorkflowStore((s) => s.isReadOnly);
+  const categories = useOptions('nodeCategories');
 
   const [paletteQuery, setPaletteQuery] = useState('');
   const [tab, setTab] = useState<'nodes' | 'tools'>('nodes');
@@ -29,13 +32,17 @@ export function LeftSidebar() {
     enabled: tab === 'tools',
   });
 
-  const visibleTypes = useMemo(() => {
+  const groups = useMemo(() => {
     const needle = paletteQuery.toLowerCase();
-    return registry.filter(
+    const matches = registry.filter(
       (t) =>
         t.label.toLowerCase().includes(needle) || t.type.toLowerCase().includes(needle),
     );
-  }, [paletteQuery, registry]);
+    const grouped = groupNodeTypes(matches, categories);
+    // A reserved-but-empty group is worth showing at rest; during a search it
+    // would only be a heading over nothing.
+    return needle ? grouped.filter((group) => group.types.length > 0) : grouped;
+  }, [categories, paletteQuery, registry]);
 
   const onDragStart = (event: DragEvent<HTMLDivElement>, nodeType: string) => {
     event.dataTransfer.setData(PALETTE_DND_TYPE, nodeType);
@@ -82,25 +89,37 @@ export function LeftSidebar() {
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {tab === 'nodes' &&
-            visibleTypes.map((definition) => (
-              <div
-                key={definition.type}
-                draggable={!isReadOnly}
-                onDragStart={(event) => onDragStart(event, definition.type)}
-                title={definition.description || definition.label}
-                className={cn(
-                  'mb-1 flex items-center gap-2 rounded border border-border px-2 py-1.5',
-                  isReadOnly ? 'opacity-50' : 'cursor-grab active:cursor-grabbing hover:border-accent',
+            groups.map((group) => (
+              <section key={group.value} className="mb-2">
+                <div className="prop-section-title px-1 pt-1">{group.label}</div>
+                {group.types.length === 0 && (
+                  <div className="rounded border border-dashed border-border px-2 py-2 text-center text-[10px] text-text-muted">
+                    Nothing here yet
+                  </div>
                 )}
-              >
-                <span
-                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] text-white"
-                  style={{ background: nodeColor(definition) }}
-                >
-                  <i className={nodeIcon(definition)} />
-                </span>
-                <span className="truncate text-[12px]">{definition.label}</span>
-              </div>
+                {group.types.map((definition) => (
+                  <div
+                    key={definition.type}
+                    draggable={!isReadOnly}
+                    onDragStart={(event) => onDragStart(event, definition.type)}
+                    title={definition.description || definition.label}
+                    className={cn(
+                      'mb-1 flex items-center gap-2 rounded border border-border px-2 py-1.5',
+                      isReadOnly
+                        ? 'opacity-50'
+                        : 'cursor-grab active:cursor-grabbing hover:border-accent',
+                    )}
+                  >
+                    <span
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] text-white"
+                      style={{ background: nodeColor(definition) }}
+                    >
+                      <i className={nodeIcon(definition)} />
+                    </span>
+                    <span className="truncate text-[12px]">{definition.label}</span>
+                  </div>
+                ))}
+              </section>
             ))}
 
           {tab === 'tools' && (

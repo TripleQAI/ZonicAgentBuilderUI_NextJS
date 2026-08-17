@@ -57,6 +57,8 @@ export interface NodeTypeDef {
   outputSchema: Record<string, unknown>;
   validationSchema: { rules?: unknown[] };
   sortOrder: number;
+  /** Palette group, matching a `nodeCategories` option value. */
+  category?: string;
 }
 
 export interface ToolDef {
