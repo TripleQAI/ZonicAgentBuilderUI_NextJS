@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 
 import { WorkflowPicker } from '@/components/explorer/WorkflowPicker';
@@ -52,10 +53,18 @@ export function AppHeader({
 
   return (
     <header className="flex h-[var(--header-h)] shrink-0 items-center gap-3 border-b border-border bg-panel px-3">
-      <span className="text-[13px] font-semibold tracking-tight text-accent">
-        <i className="bi-diagram-3-fill mr-1.5" />
-        InSite
-      </span>
+      {/* The brand mark the source served from the tenant's banner logo,
+          bundled rather than hot-linked so the header does not depend on an
+          external CDN. Sized as the source's #app-logo rule: 110px wide,
+          proportional height. */}
+      <Image
+        src="/insite-logo.png"
+        alt="InSite"
+        width={110}
+        height={24}
+        priority
+        className="shrink-0 object-contain"
+      />
 
       <div className="min-w-0">
         <div className="flex items-center gap-1">

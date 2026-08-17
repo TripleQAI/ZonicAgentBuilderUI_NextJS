@@ -34,6 +34,7 @@ export type OptionSetName =
   | 'mappingTypes'
   | 'stateOps'
   | 'schemaTypes'
+  | 'nodeCategories'
   | 'toolTypes'
   | 'variableTypes'
   | 'messageRoles'

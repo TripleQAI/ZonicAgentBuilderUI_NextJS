@@ -38,7 +38,7 @@ an empty shell if it cannot reach the API.
 app/builder            route shell
   BuilderShell         owns load / save / export; everything else subscribes
     AppHeader          name, counts, breadcrumb, toolbar, agent explorer
-    LeftSidebar        node palette (HTML5 drag source)
+    LeftSidebar        node palette, grouped by category (HTML5 drag source)
     FlowCanvas         React Flow: RegistryNode, BendableEdge, minimap
     PropertiesPanel    resizable; SchemaForm or AgentSettingsPanel
     DialogHost         all modal and drawer surfaces
@@ -90,8 +90,10 @@ Everything the Django UI did:
 - **Canvas** — pan, zoom, fit, dot grid, minimap, node drag, connect with
   preview, draggable edge bend, hover an edge for its delete button, keyboard
   delete, double-click a Sub Flow node to open its child
-- **Properties panel** — resizable with persisted width, collapse-all,
-  schema-driven sections and accordions, agent settings when nothing is selected
+- **Properties panel** — resizable with persisted width, expand / collapse all,
+  schema-driven sections and accordions. With nothing selected it sits closed as
+  a rail and gives its width to the canvas; the rail opens agent settings, and
+  selecting a node opens the panel on that node
 - **Tools** — a card per attached tool (name, type, description), Add Tool,
   Browse Catalog, and the MCP configurator behind an `mcp` row: server
   transport, and database / HTTP / function tools with their parameter mapping,

@@ -18,6 +18,26 @@ const MIN_WIDTH = 360;
 const MAX_WIDTH = 720;
 
 /**
+ * Drive every collapsible section to one state, and report which.
+ *
+ * Expands while any section is still closed, and only collapses once they are
+ * all open. Sections own their own state and are spread across two unrelated
+ * component trees — the schema-driven form and the agent settings panel — so
+ * the shared control reaches them through the `data-accordion-open` attribute
+ * each one already publishes rather than through lifted state.
+ *
+ * The button previously clicked only the sections reading `true`, which meant
+ * that from the default — everything collapsed — it had nothing to click.
+ */
+export function toggleAccordions(buttons: HTMLButtonElement[]): boolean {
+  const target = buttons.some((button) => button.dataset.accordionOpen !== 'true');
+  buttons
+    .filter((button) => (button.dataset.accordionOpen === 'true') !== target)
+    .forEach((button) => button.click());
+  return target;
+}
+
+/**
  * The right-hand panel.
  *
  * Behaviour carried over from the source: part of the flex layout rather than
@@ -71,11 +91,40 @@ export function PropertiesPanel() {
     [width],
   );
 
-  const collapseAll = useCallback(() => {
-    bodyRef.current
-      ?.querySelectorAll<HTMLButtonElement>('[data-accordion-open="true"]')
-      .forEach((button) => button.click());
+  const [expanded, setExpanded] = useState(false);
+  /** Agent settings are opt-in: with nothing selected the panel gives its
+   *  width back to the canvas until the rail is clicked. Selecting a node
+   *  still opens the panel, since that is what selecting a node is for. */
+  const [showSettings, setShowSettings] = useState(false);
+
+  const toggleSections = useCallback(() => {
+    const buttons = Array.from(
+      bodyRef.current?.querySelectorAll<HTMLButtonElement>('[data-accordion-open]') ?? [],
+    );
+    if (buttons.length > 0) setExpanded(toggleAccordions(buttons));
   }, []);
+
+  if (!node && !showSettings) {
+    return (
+      <aside className="flex w-9 shrink-0 flex-col items-center gap-2 border-l border-border bg-panel py-2">
+        <button
+          type="button"
+          className="btn-icon readonly-allowed"
+          title="Open agent settings"
+          aria-label="Open agent settings"
+          onClick={() => setShowSettings(true)}
+        >
+          <i className={AGENT_SETTINGS_ICON} />
+        </button>
+        <span
+          className="select-none text-[10px] uppercase tracking-wider text-text-muted"
+          style={{ writingMode: 'vertical-rl' }}
+        >
+          Agent Settings
+        </span>
+      </aside>
+    );
+  }
 
   return (
     <aside
@@ -109,21 +158,23 @@ export function PropertiesPanel() {
         <button
           type="button"
           className="btn-sm readonly-allowed"
-          onClick={collapseAll}
-          title="Collapse all sections"
+          onClick={toggleSections}
+          title={expanded ? 'Collapse all sections' : 'Expand all sections'}
+          aria-label={expanded ? 'Collapse all sections' : 'Expand all sections'}
         >
-          <i className="bi-arrows-collapse" />
+          <i className={expanded ? 'bi-arrows-collapse' : 'bi-arrows-expand'} />
         </button>
-        {node && (
-          <button
-            type="button"
-            className="btn-icon readonly-allowed hover:text-danger"
-            onClick={() => selectNode(null)}
-            title="Close"
-          >
-            <i className="bi-x-lg" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn-icon readonly-allowed hover:text-danger"
+          // Closing a node's properties deselects it, which lands back on the
+          // rail; closing the settings themselves just hides the panel.
+          onClick={() => (node ? selectNode(null) : setShowSettings(false))}
+          title="Close"
+          aria-label="Close panel"
+        >
+          <i className="bi-x-lg" />
+        </button>
       </header>
 
       <div
