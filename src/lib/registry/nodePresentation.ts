@@ -11,8 +11,11 @@ import type { NodeTypeDef } from '@/types/registry';
 /** Matches the grey the source used for an unknown node type. */
 export const FALLBACK_NODE_COLOR = '#6b7280';
 export const FALLBACK_NODE_ICON = 'bi-circle';
-/** Shown by the properties panel when nothing is selected. */
-export const AGENT_SETTINGS_ICON = 'bi-diagram-3';
+/** Shown by the properties panel when nothing is selected — its rail and its
+ *  header. Deliberately not `bi-diagram-3`: that is the InSite brand mark in
+ *  the header and the Relationship Map button, so on the rail it read as a
+ *  logo rather than as something to click. */
+export const AGENT_SETTINGS_ICON = 'bi-sliders';
 
 export function nodeColor(definition?: NodeTypeDef | null): string {
   return definition?.color || FALLBACK_NODE_COLOR;

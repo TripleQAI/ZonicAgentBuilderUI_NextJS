@@ -90,8 +90,10 @@ Everything the Django UI did:
 - **Canvas** — pan, zoom, fit, dot grid, minimap, node drag, connect with
   preview, draggable edge bend, hover an edge for its delete button, keyboard
   delete, double-click a Sub Flow node to open its child
-- **Properties panel** — resizable with persisted width, collapse-all,
-  schema-driven sections and accordions, agent settings when nothing is selected
+- **Properties panel** — resizable with persisted width, expand / collapse all,
+  schema-driven sections and accordions. With nothing selected it sits closed as
+  a rail and gives its width to the canvas; the rail opens agent settings, and
+  selecting a node opens the panel on that node
 - **Tools** — a card per attached tool (name, type, description), Add Tool,
   Browse Catalog, and the MCP configurator behind an `mcp` row: server
   transport, and database / HTTP / function tools with their parameter mapping,
