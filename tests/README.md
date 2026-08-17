@@ -6,6 +6,7 @@ tests/
   unit/
     agent/        flowVariables.test.ts    variable definitions ⇄ editor rows
     api/          endpoints.test.ts        proxied vs direct URL building
+    mcp/          schema.test.ts           MCP visibility, validation, drafts
     components/   fieldRegistry.test.ts    all 25 widget types resolve
                   schemaForm.test.tsx      the properties form generator
     registry/     nodeHandles.test.ts      which handles a node renders
@@ -46,6 +47,11 @@ These are unit tests over the parts where a mistake is silent:
 - **Dot-paths.** A field's `key` is its form name, its read path and its write
   path at once. Everything in the properties panel rides on those two
   functions.
+- **The MCP schema.** Its tests read the real backend resource rather than a
+  fixture, so a field added without a default, or a `showWhen` pointing at a key
+  that does not exist, fails here instead of rendering nothing in the dialog.
+  Validation is derived from the same schema the form renders, which is the
+  property being pinned: the source kept the two apart and they drifted.
 - **Variable definitions.** Both directions are lossy if written carelessly:
   the stored object is keyed by name, so a duplicate drops a variable, and
   rebuilding a definition from the four displayed fields discards whatever else

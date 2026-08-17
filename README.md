@@ -92,6 +92,10 @@ Everything the Django UI did:
   delete, double-click a Sub Flow node to open its child
 - **Properties panel** — resizable with persisted width, collapse-all,
   schema-driven sections and accordions, agent settings when nothing is selected
+- **Tools** — a card per attached tool (name, type, description), Add Tool,
+  Browse Catalog, and the MCP configurator behind an `mcp` row: server
+  transport, and database / HTTP / function tools with their parameter mapping,
+  result settings and cache keys
 - **Mock runtime** — client-side, all node types, Human Input suspends the walk
 
 ---
@@ -102,11 +106,12 @@ Everything the Django UI did:
 npm test
 ```
 
-139 tests covering the parts most likely to break silently: the `raw_json`
+167 tests covering the parts most likely to break silently: the `raw_json`
 overlay round trip (unknown keys must survive), the mock engine's traversal,
 branch selection, human-input suspension and loop guard, handle derivation, the
-handoff invariant, flow variable definitions, and a registry test that asserts
-the widget set matches the source's `_buildField` switch exactly.
+handoff invariant, flow variable definitions, the MCP schema's visibility and
+validation rules, and a registry test that asserts the widget set matches the
+source's `_buildField` switch exactly.
 
 See [tests/README.md](tests/README.md) for the layout and what each file is for.
 
@@ -123,6 +128,6 @@ See [tests/README.md](tests/README.md) for the layout and what each file is for.
 - **Code and markdown fields are plain textareas.** The plan specifies
   CodeMirror 6 and a markdown editor; the textarea versions round-trip values
   correctly but have no syntax highlighting.
-- **Tool picker and MCP configurator are not built.** `ToolListField` shows and
-  detaches attached tools and raises a `zonic:open-tool-picker` event, but
-  nothing listens for it yet.
+- **Code and payload editors in the MCP configurator are textareas too**, for
+  the same reason as above — the source used CodeMirror for the SQL script and
+  the JSON body/payload templates.

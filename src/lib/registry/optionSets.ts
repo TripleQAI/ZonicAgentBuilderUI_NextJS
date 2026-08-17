@@ -22,6 +22,10 @@ export type Option = {
   label: string;
   /** Optional swatch, as node types already carry one. Set for variableTypes. */
   color?: string;
+  /** Which dialog this choice opens, and the link's wording. Set on the tool
+   *  type that has a configurator, so no component tests for a literal value. */
+  configurator?: string;
+  configureLabel?: string;
 };
 export type OptionSets = Record<string, Option[]>;
 
@@ -30,6 +34,7 @@ export type OptionSetName =
   | 'mappingTypes'
   | 'stateOps'
   | 'schemaTypes'
+  | 'toolTypes'
   | 'variableTypes'
   | 'messageRoles'
   | 'invocationTypes'

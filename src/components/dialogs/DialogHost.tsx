@@ -7,10 +7,12 @@ import { FlowVariablesDrawer } from '@/components/dialogs/FlowVariablesDrawer';
 import { ImportDialog } from '@/components/dialogs/ImportDialog';
 import { JsonViewerDrawer } from '@/components/dialogs/JsonViewerDrawer';
 import { KeyValueDrawer } from '@/components/dialogs/KeyValueDrawer';
+import { McpConfigDialog } from '@/components/dialogs/McpConfigDialog';
 import { MockRunDialog } from '@/components/dialogs/MockRunDialog';
 import { Modal } from '@/components/dialogs/Modal';
 import { RelationshipMapDialog } from '@/components/dialogs/RelationshipMapDialog';
 import { SemanticSearchDrawer } from '@/components/dialogs/SemanticSearchDrawer';
+import { ToolCatalogDialog } from '@/components/dialogs/ToolCatalogDialog';
 import { ValidationDialog } from '@/components/dialogs/ValidationDialog';
 import { api } from '@/lib/api/client';
 import { toAgentJson } from '@/lib/serialization/agentDocument';
@@ -48,6 +50,8 @@ export function DialogHost({
 }) {
   const agent = useWorkflowStore((s) => s.currentAgent);
   const patchAgent = useWorkflowStore((s) => s.patchAgent);
+  const toolDialog = useWorkflowStore((s) => s.toolDialog);
+  const closeToolDialog = useWorkflowStore((s) => s.closeToolDialog);
   const [snapshotComment, setSnapshotComment] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -81,6 +85,20 @@ export function DialogHost({
       <ValidationDialog open={open === 'validation'} onClose={onClose} />
       <MockRunDialog open={open === 'mock-run'} onClose={onClose} />
       <SemanticSearchDrawer open={open === 'semantic'} onClose={onClose} />
+
+      {/* Opened from the tool list inside the properties form, so these are
+          driven by the store rather than by the toolbar's dialog name. */}
+      <ToolCatalogDialog
+        open={toolDialog?.kind === 'catalog'}
+        nodeId={toolDialog?.nodeId ?? null}
+        onClose={closeToolDialog}
+      />
+      <McpConfigDialog
+        open={toolDialog?.kind === 'mcp'}
+        nodeId={toolDialog?.nodeId ?? null}
+        toolIndex={toolDialog?.toolIndex ?? null}
+        onClose={closeToolDialog}
+      />
 
       <FlowVariablesDrawer
         open={open === 'flow-variables'}

@@ -15,6 +15,7 @@ import type {
   ValidationResult,
 } from '@/types/agent';
 import type { NodeSemantics } from '@/lib/registry/nodeSemantics';
+import type { McpConfigSchema } from '@/types/mcp';
 import type { NodeTypeDef, ToolDef } from '@/types/registry';
 
 export class ApiError extends Error {
@@ -131,6 +132,8 @@ export const api = {
     ),
 
   getNodeSemantics: () => request<NodeSemantics>(endpoints.nodeSemantics()),
+
+  getMcpConfigSchema: () => request<McpConfigSchema>(endpoints.mcpConfigSchema()),
 
   validateWorkflow: (document: AgentDocument) =>
     request<ValidationResult>(endpoints.validate(), {
