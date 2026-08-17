@@ -4,6 +4,7 @@
  */
 export const messages = {
   WORKFLOW_BUILDER: 'InSite Agent Workflow Builder',
+  AGENT_EXPLORER: 'Agent Explorer',
   AGENT_LIBRARY: 'Agent Library',
   NODE_PROPERTIES: 'Node Properties',
   RELATIONSHIP_MAP: 'Relationship Map',

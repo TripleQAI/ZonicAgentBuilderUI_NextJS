@@ -5,9 +5,12 @@ import { useEffect, useState } from 'react';
 import { Modal } from '@/components/dialogs/Modal';
 
 /**
- * Flow Variables and System Parameters are the same drawer with different
- * labels and token syntax, so they share one component instead of two
- * near-identical ones.
+ * Name/value rows, used by System Parameters.
+ *
+ * Flow Variables started here too, but a variable is a declaration — type,
+ * default, description — rather than a pair, so it has its own editor in
+ * FlowVariablesDrawer. This stays generic for any surface that is genuinely
+ * key/value.
  */
 export function KeyValueDrawer({
   open,

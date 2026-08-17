@@ -57,6 +57,13 @@ function setDotPath(target: Record<string, unknown>, dotPath: string, value: unk
   cursor[keys[keys.length - 1]] = value;
 }
 
+/** `toolIndex` names the row whose MCP server is being configured. */
+export interface ToolDialogRequest {
+  kind: 'catalog' | 'mcp';
+  nodeId: string;
+  toolIndex: number | null;
+}
+
 export interface WorkflowState {
   currentAgent: AgentDraft | null;
   rootAgenticWorkflowId: string | null;
@@ -70,6 +77,10 @@ export interface WorkflowState {
   isDirty: boolean;
   /** Bumped whenever the properties form must re-read the node. */
   formEpoch: number;
+  /** Which tool surface is open, if any. Held here rather than passed down
+   *  because the button that opens it is a field inside the properties form
+   *  and the dialog is mounted at the root. */
+  toolDialog: ToolDialogRequest | null;
 
   setNodeRegistry: (types: NodeTypeDef[]) => void;
   setNodeSemantics: (semantics: NodeSemantics) => void;
@@ -105,6 +116,11 @@ export interface WorkflowState {
   clearSelection: () => void;
 
   patchAgent: (patch: Partial<AgentDraft>) => void;
+  /** Re-seed the properties form from the node. Needed after a dialog writes a
+   *  field the open form also holds, since react-hook-form owns its own copy. */
+  refreshForm: () => void;
+  openToolDialog: (request: ToolDialogRequest) => void;
+  closeToolDialog: () => void;
   markDirty: () => void;
   markClean: () => void;
   setReadOnly: (value: boolean) => void;
@@ -123,6 +139,7 @@ export const useWorkflowStore = create<WorkflowState>()(
     isReadOnly: false,
     isDirty: false,
     formEpoch: 0,
+    toolDialog: null,
 
     setNodeRegistry: (types) =>
       set((state) => {
@@ -410,6 +427,21 @@ export const useWorkflowStore = create<WorkflowState>()(
         if (!state.currentAgent) return;
         Object.assign(state.currentAgent, patch);
         state.isDirty = true;
+      }),
+
+    refreshForm: () =>
+      set((state) => {
+        state.formEpoch += 1;
+      }),
+
+    openToolDialog: (request) =>
+      set((state) => {
+        state.toolDialog = request;
+      }),
+
+    closeToolDialog: () =>
+      set((state) => {
+        state.toolDialog = null;
       }),
 
     markDirty: () =>

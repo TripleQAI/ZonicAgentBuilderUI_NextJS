@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 
+import { toRows } from '@/lib/agent/flowVariables';
 import { cn } from '@/lib/utils/cn';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 
@@ -38,11 +39,15 @@ function useTokenGroups(): TokenGroup[] {
       ],
     });
 
-    const variableNames = Object.keys(agent.variables ?? {});
-    if (variableNames.length) {
+    // Variables are declarations, so the hint can say what each one is.
+    const variables = toRows(agent.variables);
+    if (variables.length) {
       groups.push({
         label: 'Flow Variables',
-        tokens: variableNames.map((key) => ({ token: `{{${key}}}` })),
+        tokens: variables.map((variable) => ({
+          token: `{{${variable.name}}}`,
+          hint: [variable.type, variable.description].filter(Boolean).join(' — ') || undefined,
+        })),
       });
     }
 

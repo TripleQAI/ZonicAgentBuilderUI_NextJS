@@ -37,8 +37,8 @@ an empty shell if it cannot reach the API.
 ```
 app/builder            route shell
   BuilderShell         owns load / save / export; everything else subscribes
-    AppHeader          name, counts, breadcrumb, toolbar, workflow picker
-    LeftSidebar        agent explorer + node palette (HTML5 drag source)
+    AppHeader          name, counts, breadcrumb, toolbar, agent explorer
+    LeftSidebar        node palette (HTML5 drag source)
     FlowCanvas         React Flow: RegistryNode, BendableEdge, minimap
     PropertiesPanel    resizable; SchemaForm or AgentSettingsPanel
     DialogHost         all modal and drawer surfaces
@@ -81,15 +81,21 @@ lines of bespoke component CSS are gone.
 Everything the Django UI did:
 
 - **Header** — editable name, copyable workflow id, node/edge badges, unsaved
-  dot, `Root › Child` breadcrumb, workflow picker with search and New Workflow
-- **Toolbar** — flow variables, system parameters, JSON viewer, relationship
-  map, validate, mock run, semantic search config, snapshot, save, import,
-  export agent / package / debug
+  dot, `Root › Child` breadcrumb, Agent Explorer dropdown with search and New
+  Workflow (the source's left-column agent list, kept in one place)
+- **Toolbar** — flow variables (typed declarations: name, type, default,
+  description), system parameters, JSON viewer, relationship map, validate,
+  mock run, semantic search config, snapshot, save, import, export agent /
+  package / debug
 - **Canvas** — pan, zoom, fit, dot grid, minimap, node drag, connect with
-  preview, draggable edge bend, keyboard delete, double-click a Sub Flow node to
-  open its child
+  preview, draggable edge bend, hover an edge for its delete button, keyboard
+  delete, double-click a Sub Flow node to open its child
 - **Properties panel** — resizable with persisted width, collapse-all,
   schema-driven sections and accordions, agent settings when nothing is selected
+- **Tools** — a card per attached tool (name, type, description), Add Tool,
+  Browse Catalog, and the MCP configurator behind an `mcp` row: server
+  transport, and database / HTTP / function tools with their parameter mapping,
+  result settings and cache keys
 - **Mock runtime** — client-side, all node types, Human Input suspends the walk
 
 ---
@@ -100,10 +106,14 @@ Everything the Django UI did:
 npm test
 ```
 
-42 tests covering the parts most likely to break silently: the `raw_json`
+167 tests covering the parts most likely to break silently: the `raw_json`
 overlay round trip (unknown keys must survive), the mock engine's traversal,
-branch selection, human-input suspension and loop guard, and a registry test
-that asserts the widget set matches the source's `_buildField` switch exactly.
+branch selection, human-input suspension and loop guard, handle derivation, the
+handoff invariant, flow variable definitions, the MCP schema's visibility and
+validation rules, and a registry test that asserts the widget set matches the
+source's `_buildField` switch exactly.
+
+See [tests/README.md](tests/README.md) for the layout and what each file is for.
 
 ---
 
@@ -118,6 +128,6 @@ that asserts the widget set matches the source's `_buildField` switch exactly.
 - **Code and markdown fields are plain textareas.** The plan specifies
   CodeMirror 6 and a markdown editor; the textarea versions round-trip values
   correctly but have no syntax highlighting.
-- **Tool picker and MCP configurator are not built.** `ToolListField` shows and
-  detaches attached tools and raises a `zonic:open-tool-picker` event, but
-  nothing listens for it yet.
+- **Code and payload editors in the MCP configurator are textareas too**, for
+  the same reason as above — the source used CodeMirror for the SQL script and
+  the JSON body/payload templates.

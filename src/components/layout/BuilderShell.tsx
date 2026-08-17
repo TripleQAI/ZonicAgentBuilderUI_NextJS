@@ -139,7 +139,7 @@ export function BuilderShell() {
       <AppHeader onOpenDialog={setDialog} onSave={save} agents={agents.data ?? []} onOpenAgent={openAgent} />
       <ReadOnlyBanner />
       <div className="flex min-h-0 flex-1">
-        <LeftSidebar agents={agents.data ?? []} onOpenAgent={openAgent} />
+        <LeftSidebar />
         <main className="min-w-0 flex-1">
           <FlowCanvas onOpenSubFlow={(childId) => void openAgent(childId)} />
         </main>

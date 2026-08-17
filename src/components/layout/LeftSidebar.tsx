@@ -8,21 +8,18 @@ import { api } from '@/lib/api/client';
 import { nodeColor, nodeIcon } from '@/lib/registry/nodePresentation';
 import { cn } from '@/lib/utils/cn';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
-import type { AgentSummary } from '@/types/agent';
 
-/** Agent Explorer above, Node Palette below — the source's left column. */
-export function LeftSidebar({
-  agents,
-  onOpenAgent,
-}: {
-  agents: AgentSummary[];
-  onOpenAgent: (id: string, options?: { asRoot?: boolean }) => void;
-}) {
-  const currentId = useWorkflowStore((s) => s.currentAgent?.agenticWorkflowId);
+/**
+ * The Node Palette — the drag source for the canvas.
+ *
+ * The source's left column also carried an agent list, but the header's
+ * WorkflowPicker is the same list against the same data, so only one of the two
+ * is kept and switching workflows lives entirely in the header.
+ */
+export function LeftSidebar() {
   const registry = useWorkflowStore((s) => s.nodeRegistry);
   const isReadOnly = useWorkflowStore((s) => s.isReadOnly);
 
-  const [explorerQuery, setExplorerQuery] = useState('');
   const [paletteQuery, setPaletteQuery] = useState('');
   const [tab, setTab] = useState<'nodes' | 'tools'>('nodes');
 
@@ -31,15 +28,6 @@ export function LeftSidebar({
     queryFn: api.getTools,
     enabled: tab === 'tools',
   });
-
-  const visibleAgents = useMemo(() => {
-    const needle = explorerQuery.toLowerCase();
-    return agents.filter(
-      (a) =>
-        a.displayName.toLowerCase().includes(needle) ||
-        a.name.toLowerCase().includes(needle),
-    );
-  }, [agents, explorerQuery]);
 
   const visibleTypes = useMemo(() => {
     const needle = paletteQuery.toLowerCase();
@@ -57,54 +45,9 @@ export function LeftSidebar({
   return (
     <aside
       className="flex w-[var(--sidebar-w)] shrink-0 flex-col border-r border-border bg-panel"
-      aria-label="Agent explorer and node palette"
+      aria-label="Node palette"
     >
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="prop-section-title mb-0 border-b border-border px-3 py-2">
-          <i className="bi-robot mr-1" />
-          Agent Explorer
-        </div>
-        <div className="p-2">
-          <input
-            className="prop-input"
-            placeholder="Search agents…"
-            value={explorerQuery}
-            onChange={(event) => setExplorerQuery(event.target.value)}
-          />
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-          {visibleAgents.length === 0 && (
-            <div className="p-2 text-[11px] text-text-muted">No agents loaded</div>
-          )}
-          {visibleAgents.map((summary) => (
-            <button
-              key={summary.agenticWorkflowId}
-              type="button"
-              className={cn(
-                'mb-1 block w-full rounded px-2 py-1.5 text-left transition-colors',
-                summary.agenticWorkflowId === currentId
-                  ? 'bg-accent/15 text-accent'
-                  : 'hover:bg-border/60',
-              )}
-              onClick={() =>
-                onOpenAgent(summary.agenticWorkflowId, { asRoot: summary.isRoot })
-              }
-            >
-              <span className="flex items-center gap-1.5">
-                <i className={summary.isRoot ? 'bi-house-fill' : 'bi-diagram-2'} />
-                <span className="min-w-0 flex-1 truncate text-[12px]">
-                  {summary.displayName || summary.name}
-                </span>
-              </span>
-              <span className="text-[10px] text-text-muted">
-                {summary.nodeCount} nodes · {summary.edgeCount} edges
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-[1.4] flex-col border-t border-border">
         <div className="prop-section-title mb-0 border-b border-border px-3 py-2">
           <i className="bi-grid mr-1" />
           Node Palette

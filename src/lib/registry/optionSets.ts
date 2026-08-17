@@ -17,7 +17,16 @@ import { useQuery } from '@tanstack/react-query';
 
 import { api } from '@/lib/api/client';
 
-export type Option = { value: string; label: string };
+export type Option = {
+  value: string;
+  label: string;
+  /** Optional swatch, as node types already carry one. Set for variableTypes. */
+  color?: string;
+  /** Which dialog this choice opens, and the link's wording. Set on the tool
+   *  type that has a configurator, so no component tests for a literal value. */
+  configurator?: string;
+  configureLabel?: string;
+};
 export type OptionSets = Record<string, Option[]>;
 
 /** Keys the UI asks for. Named so a typo is a type error, not a silent empty list. */
@@ -25,6 +34,8 @@ export type OptionSetName =
   | 'mappingTypes'
   | 'stateOps'
   | 'schemaTypes'
+  | 'toolTypes'
+  | 'variableTypes'
   | 'messageRoles'
   | 'invocationTypes'
   | 'semanticDomains';
