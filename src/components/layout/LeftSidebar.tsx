@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState, type DragEvent } from 'react';
+import { useId, useMemo, useState, type CSSProperties, type DragEvent, type ReactNode } from 'react';
 
 import { PALETTE_DND_TYPE } from '@/components/canvas/FlowCanvas';
 import { api } from '@/lib/api/client';
@@ -10,6 +10,40 @@ import { nodeColor, nodeIcon } from '@/lib/registry/nodePresentation';
 import { useOptions } from '@/lib/registry/optionSets';
 import { cn } from '@/lib/utils/cn';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
+
+/** A collapsible group: a chevron, the group's name and how many node types it holds. */
+function PaletteGroup({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const bodyId = useId();
+  return (
+    <section className="mb-2">
+      <button
+        type="button"
+        className="flex w-full items-center gap-1.5 py-1 text-left text-[12px] font-semibold text-text-primary"
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+        onClick={() => setExpanded((open) => !open)}
+      >
+        <i className={cn(expanded ? 'bi-chevron-down' : 'bi-chevron-right', 'text-[11px] text-text-muted')} />
+        <span>{label}</span>
+        <span className="ml-auto inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full border border-border bg-bg px-1.5 text-[11px] font-semibold text-text-muted">
+          {count}
+        </span>
+      </button>
+      <div id={bodyId} hidden={!expanded} className="pt-1.5">
+        {children}
+      </div>
+    </section>
+  );
+}
 
 /**
  * The Node Palette — the drag source for the canvas.
@@ -90,36 +124,37 @@ export function LeftSidebar() {
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
           {tab === 'nodes' &&
             groups.map((group) => (
-              <section key={group.value} className="mb-2">
-                <div className="prop-section-title px-1 pt-1">{group.label}</div>
-                {group.types.length === 0 && (
+              <PaletteGroup key={group.value} label={group.label} count={group.types.length}>
+                {group.types.length === 0 ? (
                   <div className="rounded border border-dashed border-border px-2 py-2 text-center text-[10px] text-text-muted">
                     Nothing here yet
                   </div>
-                )}
-                {group.types.map((definition) => (
-                  <div
-                    key={definition.type}
-                    draggable={!isReadOnly}
-                    onDragStart={(event) => onDragStart(event, definition.type)}
-                    title={definition.description || definition.label}
-                    className={cn(
-                      'mb-1 flex items-center gap-2 rounded border border-border px-2 py-1.5',
-                      isReadOnly
-                        ? 'opacity-50'
-                        : 'cursor-grab active:cursor-grabbing hover:border-accent',
-                    )}
-                  >
-                    <span
-                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-[10px] text-white"
-                      style={{ background: nodeColor(definition) }}
-                    >
-                      <i className={nodeIcon(definition)} />
-                    </span>
-                    <span className="truncate text-[12px]">{definition.label}</span>
+                ) : (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {group.types.map((definition) => (
+                      <div
+                        key={definition.type}
+                        draggable={!isReadOnly}
+                        onDragStart={(event) => onDragStart(event, definition.type)}
+                        title={definition.description || definition.label}
+                        aria-disabled={isReadOnly}
+                        className={cn(
+                          'palette-tile',
+                          isReadOnly
+                            ? 'cursor-not-allowed opacity-50'
+                            : 'cursor-grab active:cursor-grabbing',
+                        )}
+                        style={{ '--node-color': nodeColor(definition) } as CSSProperties}
+                      >
+                        <span className="node-icon-tile h-[34px] w-[34px] text-[17px]">
+                          <i className={nodeIcon(definition)} />
+                        </span>
+                        <span className="min-w-0 break-words">{definition.label}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </section>
+                )}
+              </PaletteGroup>
             ))}
 
           {tab === 'tools' && (

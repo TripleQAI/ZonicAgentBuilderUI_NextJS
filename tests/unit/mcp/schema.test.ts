@@ -121,7 +121,7 @@ describe('conditional visibility', () => {
 describe('validation', () => {
   const server = (over: Partial<McpServerConfig> = {}): McpServerConfig => ({
     ...toDraft(undefined, SCHEMA),
-    serverName: 'insite-energy-mcp',
+    serverName: 'tripleq-energy-mcp',
     url: 'http://localhost:8001/mcp',
     ...over,
   });

@@ -8,8 +8,9 @@ import '@xyflow/react/dist/style.css';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
-  title: 'InSite Agent Workflow Builder',
+  title: 'TripleQ Agent Workflow Builder',
   description: 'Visual orchestration editor for multi-agent AI workflows.',
+  icons: { icon: '/favicon.png' },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
