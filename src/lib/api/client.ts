@@ -6,6 +6,7 @@
  */
 
 import { API_BASE, IS_DIRECT, endpoints } from '@/lib/api/endpoints';
+import { idToken } from '@/lib/auth/cognito';
 import type {
   AgentDocument,
   AgentSummary,
@@ -30,13 +31,19 @@ export class ApiError extends Error {
   }
 }
 
+/** Fired on `window` when the API answers 401: the session ended, so sign in again. */
+export const AUTH_EXPIRED_EVENT = 'zonic:auth-expired';
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
+  // Every call carries the signed-in user's ID token; the API refuses calls without one.
+  const token = await idToken();
   let response: Response;
   try {
     response = await fetch(url, {
       ...init,
       headers: {
         ...(init?.body instanceof FormData ? {} : { 'content-type': 'application/json' }),
+        ...(token ? { authorization: `Bearer ${token}` } : {}),
         ...init?.headers,
       },
     });
@@ -56,6 +63,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
+    if (response.status === 401) globalThis.dispatchEvent?.(new Event(AUTH_EXPIRED_EVENT));
     const body = await response.json().catch(() => ({}));
     throw new ApiError(
       body.error ?? `Request failed with ${response.status}`,

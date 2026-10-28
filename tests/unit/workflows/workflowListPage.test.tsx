@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AuthProvider } from '@/components/auth/AuthProvider';
 import { WorkflowListPage } from '@/components/workflows/WorkflowListPage';
 import { api } from '@/lib/api/client';
 import type { AgentSummary } from '@/types/agent';
@@ -9,7 +10,14 @@ import type { AgentSummary } from '@/types/agent';
 /** The workflow list page over a mocked API: rows, links into the builder, search and sorting. */
 
 const push = vi.fn();
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
+// A signed-in user, without Cognito.
+vi.mock('@/lib/auth/cognito', () => ({
+  currentUser: async () => ({ email: 'builder@example.com' }),
+  idToken: async () => 'test-token',
+  isAuthConfigured: () => true,
+  signOutUser: async () => undefined,
+}));
 
 const ROWS: AgentSummary[] = [
   {
@@ -38,7 +46,9 @@ function renderPage() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <WorkflowListPage />
+      <AuthProvider>
+        <WorkflowListPage />
+      </AuthProvider>
     </QueryClientProvider>,
   );
 }
@@ -63,6 +73,9 @@ describe('the workflow list page', () => {
     expect(within(bodyRows()[0]).getByText('Root')).toBeInTheDocument();
     expect(within(bodyRows()[1]).getByText('Sub-agent')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /New workflow/ })).toHaveAttribute('href', '/builder?new=1');
+    // The header shows who is signed in.
+    expect(await screen.findByText('builder@example.com')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sign out/ })).toBeInTheDocument();
   });
 
   it('filters by the search text and says when nothing matches', async () => {

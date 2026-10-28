@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useState, type MouseEvent } from 'react';
 
+import { UserMenu } from '@/components/auth/UserMenu';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { WorkflowPicker } from '@/components/explorer/WorkflowPicker';
 import type { DialogName } from '@/components/dialogs/DialogHost';
@@ -51,9 +53,29 @@ export function AppHeader({
   const rootName =
     agents.find((a) => a.agenticWorkflowId === rootId)?.displayName ?? 'Root';
 
+  /** Leaving for the workflow list asks first when there are unsaved changes. */
+  const confirmLeave = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (isDirty && !window.confirm('This workflow has unsaved changes. Leave without saving?'))
+      event.preventDefault();
+  };
+
   return (
     <header className="flex h-[var(--header-h)] shrink-0 items-center gap-3 border-b border-border bg-panel px-3">
-      <BrandMark />
+      <BrandMark onClick={confirmLeave} />
+
+      {/* One click back to the list of all workflows. */}
+      <Link
+        href="/workflows"
+        onClick={confirmLeave}
+        className="btn-sm shrink-0"
+        title="Back to all workflows"
+        aria-label="Back to all workflows"
+      >
+        <i className="bi-arrow-left" aria-hidden />
+        <i className="bi-grid-3x3-gap" aria-hidden />
+        Workflows
+      </Link>
+      <span className="h-6 w-px shrink-0 bg-border" aria-hidden />
 
       <div className="min-w-0">
         <div className="flex items-center gap-1">
@@ -159,6 +181,8 @@ export function AppHeader({
           </button>
         ))}
       </div>
+
+      <UserMenu />
     </header>
   );
 }

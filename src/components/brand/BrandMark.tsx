@@ -1,15 +1,17 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import type { MouseEvent } from 'react';
 
 /**
  * The TripleQ AI mark as the welcome site and the runtime UI draw it: the logo
  * icon and the wordmark, with the Q bold in the accent. It links to the list of
- * agent workflows.
+ * agent workflows; `onClick` can stop the navigation (unsaved changes).
  */
-export function BrandMark() {
+export function BrandMark({ onClick }: { onClick?: (event: MouseEvent<HTMLAnchorElement>) => void }) {
   return (
     <Link
       href="/workflows"
+      onClick={onClick}
       className="flex shrink-0 items-center gap-2 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       aria-label="TripleQ AI — all agent workflows"
       title="All agent workflows"

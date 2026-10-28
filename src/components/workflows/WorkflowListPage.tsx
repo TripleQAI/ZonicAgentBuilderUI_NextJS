@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, type ReactNode } from 'react';
 
+import { UserMenu } from '@/components/auth/UserMenu';
 import { BrandMark } from '@/components/brand/BrandMark';
 import { ImportDialog } from '@/components/dialogs/ImportDialog';
 import { api } from '@/lib/api/client';
@@ -106,6 +107,8 @@ export function WorkflowListPage() {
       <header className="flex h-[var(--header-h)] shrink-0 items-center gap-3 border-b border-border bg-panel px-3">
         <BrandMark />
         <span className="text-[13px] font-semibold text-text-primary">Agent Workflow Builder</span>
+        <span className="ml-auto" />
+        <UserMenu />
       </header>
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-6">
