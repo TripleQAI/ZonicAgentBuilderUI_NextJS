@@ -17,6 +17,8 @@ export interface RegistryNodeData extends Record<string, unknown> {
   /** Sub Flow nodes show whether their child agent resolved. */
   childResolved?: boolean | null;
   childLabel?: string | null;
+  /** A swarm member that receives the task first (a star on the card). */
+  isEntry?: boolean;
 }
 
 /** The header: padding above the icon tile, and the tile's size (.node-card, .node-icon-tile). */
@@ -37,7 +39,8 @@ function offsetPercent(index: number, total: number): string {
 }
 
 /**
- * ONE component renders all 17 node types.
+ * ONE component renders every node type except containers (a swarm's frame is
+ * ContainerNode); a swarm's members are drawn by this component inside the frame.
  *
  * Label, icon, colour and handles all come from the registry entry plus the
  * node's own config, so adding a node type stays a data-only change — no new
@@ -77,6 +80,9 @@ function RegistryNodeComponent({ id, data, selected }: NodeProps) {
       data-node-id={id}
       data-node-type={nodeData.nodeType}
     >
+      {nodeData.isEntry && (
+        <i className="bi-star-fill entry-star" role="img" aria-label="Entry member" title="Entry member" />
+      )}
       {targets.map((handle, index) => (
         <Handle
           key={`t-${handle.id}`}

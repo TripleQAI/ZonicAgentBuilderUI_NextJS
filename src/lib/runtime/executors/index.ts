@@ -153,6 +153,15 @@ export const EXECUTORS: Record<string, Executor> = {
     log: `VIEW — ${String(config(node).viewId ?? 'no view')}`,
   }),
 
+  swarm: (node) => {
+    const members = Array.isArray(config(node).members) ? (config(node).members as string[]) : [];
+    const entry = String(config(node).entryPoint || members[0] || 'none');
+    return {
+      output: { text: `[MOCK swarm answer from ${members.length} members]`, finalAgent: entry, nodeHistory: [entry] },
+      log: `SWARM — ${members.length} members, starts at ${entry}`,
+    };
+  },
+
   note: () => ({
     output: { result: null },
     log: 'NOTE — not executed',

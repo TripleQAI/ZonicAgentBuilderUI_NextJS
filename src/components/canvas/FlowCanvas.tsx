@@ -8,6 +8,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
   type Connection,
   type Edge,
   type EdgeChange,
@@ -17,7 +18,10 @@ import {
 import { useCallback, useMemo, type DragEvent } from 'react';
 
 import { BendableEdge } from '@/components/canvas/BendableEdge';
+import { ContainerNode } from '@/components/canvas/ContainerNode';
+import { containerSize, memberPosition, type Size } from '@/components/canvas/containerLayout';
 import { RegistryNode, type RegistryNodeData } from '@/components/canvas/RegistryNode';
+import { canJoin, containerSpec, effectiveEntry, memberIds } from '@/lib/registry/containers';
 import { deriveHandles } from '@/lib/registry/nodeHandles';
 import { nodeColor } from '@/lib/registry/nodePresentation';
 import { getDotPath } from '@/lib/utils/dotPath';
@@ -25,7 +29,7 @@ import { useWorkflowStore } from '@/store/useWorkflowStore';
 import type { DerivedHandle } from '@/lib/registry/nodeHandles';
 import type { WorkflowEdge, WorkflowNode } from '@/types/agent';
 
-const nodeTypes = { registry: RegistryNode };
+const nodeTypes = { registry: RegistryNode, container: ContainerNode };
 const edgeTypes = { bendable: BendableEdge };
 
 export const PALETTE_DND_TYPE = 'application/x-zonic-node-type';
@@ -82,7 +86,27 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
   const selectEdge = useWorkflowStore((s) => s.selectEdge);
   const clearSelection = useWorkflowStore((s) => s.clearSelection);
 
+  const addNodeInto = useWorkflowStore((s) => s.addNodeInto);
   const { screenToFlowPosition } = useReactFlow();
+  // Every node's measured size: swarm frames fit their members with it, and each
+  // node gets its size back when the list is rebuilt (React Flow hides a node it
+  // has not measured, and does not measure again a node whose size is unchanged).
+  // Selected as a string so the canvas re-renders only when a size changes.
+  const measuredKey = useStore((state) =>
+    [...state.nodeLookup.values()]
+      .filter((n) => n.measured.width && n.measured.height)
+      .map((n) => `${n.id}:${Math.round(n.measured.width!)}x${Math.round(n.measured.height!)}`)
+      .join('|'),
+  );
+  const measured = useMemo(() => {
+    const sizes = new Map<string, Size>();
+    for (const entry of measuredKey ? measuredKey.split('|') : []) {
+      const [id, size] = entry.split(':');
+      const [width, height] = size.split('x').map(Number);
+      sizes.set(id, { width, height });
+    }
+    return sizes;
+  }, [measuredKey]);
   const semantics = useWorkflowStore((s) => s.nodeSemantics);
   const registry = useWorkflowStore((s) => s.nodeRegistry);
 
@@ -115,22 +139,55 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
     const stored = agent?.nodes ?? [];
     // Handoff handles are labelled with the target node's name.
     const names = Object.fromEntries(stored.map((n) => [n.id, n.name]));
-    return stored.map((n) =>
-      toFlowNode(
-        n,
-        deriveHandles(
-          n,
-          registry.find((t) => t.type === n.type),
-          semantics,
-          names,
-          agent?.edges ?? [],
-        ),
-        ...childInfo(n),
-      ),
+    const ids = new Set(stored.map((n) => n.id));
+    const isMember = (n: WorkflowNode) => Boolean(n.parentId && ids.has(n.parentId));
+    const membersOf = new Map<string, WorkflowNode[]>();
+    for (const n of stored)
+      if (isMember(n)) membersOf.set(n.parentId!, [...(membersOf.get(n.parentId!) ?? []), n]);
+    const entries = new Set(
+      stored.flatMap((n) => {
+        const spec = containerSpec(semantics, n.type);
+        const entry = spec ? effectiveEntry(n, spec) : undefined;
+        return entry ? [entry] : [];
+      }),
     );
+    // React Flow draws a parent before its children: containers first, members last.
+    return [...stored.filter((n) => !isMember(n)), ...stored.filter(isMember)].map((n) => {
+      const definition = registry.find((t) => t.type === n.type);
+      const member = isMember(n);
+      const spec = containerSpec(semantics, n.type);
+      const flowNode = toFlowNode(
+        n,
+        // A member hands off at run time and has no connections.
+        member
+          ? { targets: [], sources: [] }
+          : deriveHandles(n, definition, semantics, names, agent?.edges ?? []),
+        ...childInfo(n),
+      );
+      const size = measured.get(n.id);
+      if (size) flowNode.measured = size;
+      if (member) {
+        flowNode.parentId = n.parentId;
+        flowNode.position = memberPosition(n.position);
+        flowNode.extent = 'parent';
+        flowNode.data.isEntry = entries.has(n.id);
+      }
+      if (spec && definition?.layout?.kind === 'container') {
+        const members = membersOf.get(n.id) ?? [];
+        const entry = effectiveEntry(n, spec);
+        flowNode.type = 'container';
+        Object.assign(flowNode, containerSize(definition.layout, members, measured));
+        flowNode.data = {
+          ...flowNode.data,
+          memberCount: memberIds(n, spec).length,
+          entryName: entry ? names[entry] : undefined,
+        };
+      }
+      return flowNode;
+    });
     // `registry` is a dependency on purpose: it arrives asynchronously, and the
     // handles cannot be derived until it does.
-  }, [agent?.nodes, agent?.edges, childInfo, registry, semantics]);
+  }, [agent?.nodes, agent?.edges, childInfo, measured, registry, semantics]);
   const edges = useMemo(() => (agent?.edges ?? []).map(toFlowEdge), [agent?.edges]);
 
   const onNodesChange = useCallback(
@@ -178,10 +235,24 @@ function CanvasInner({ onOpenSubFlow }: { onOpenSubFlow: (childId: string) => vo
       const nodeType = event.dataTransfer.getData(PALETTE_DND_TYPE);
       if (!nodeType) return;
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      const created = addNode(nodeType, position);
+      // Dropped onto a swarm that accepts this node type: it joins the swarm.
+      const target = nodes.findLast((n) => {
+        if (n.type !== 'container') return false;
+        const stored = agent?.nodes.find((s) => s.id === n.id);
+        const { width = 0, height = 0 } = n;
+        return (
+          stored !== undefined &&
+          canJoin(semantics, stored, nodeType) &&
+          position.x >= n.position.x &&
+          position.x <= n.position.x + width &&
+          position.y >= n.position.y &&
+          position.y <= n.position.y + height
+        );
+      });
+      const created = target ? addNodeInto(nodeType, position, target.id) : addNode(nodeType, position);
       if (created) selectNode(created.id);
     },
-    [addNode, isReadOnly, screenToFlowPosition, selectNode],
+    [addNode, addNodeInto, agent?.nodes, isReadOnly, nodes, screenToFlowPosition, selectNode, semantics],
   );
 
   const onDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {

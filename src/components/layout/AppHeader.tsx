@@ -1,8 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { useState } from 'react';
 
+import { BrandMark } from '@/components/brand/BrandMark';
 import { WorkflowPicker } from '@/components/explorer/WorkflowPicker';
 import type { DialogName } from '@/components/dialogs/DialogHost';
 import { cn } from '@/lib/utils/cn';
@@ -53,16 +53,7 @@ export function AppHeader({
 
   return (
     <header className="flex h-[var(--header-h)] shrink-0 items-center gap-3 border-b border-border bg-panel px-3">
-      {/* The TripleQ AI mark as the welcome site and the runtime UI draw it:
-          the logo icon and the wordmark, with the Q bold in the accent. */}
-      <span className="flex shrink-0 items-center gap-2" role="img" aria-label="TripleQ AI">
-        <Image src="/tripleq-logo.png" alt="" width={73} height={71} priority className="h-7 w-auto" />
-        <span aria-hidden className="flex gap-[0.3em] text-[15px] tracking-wide text-text-primary">
-          <span className="font-light">TRIPLE</span>
-          <span className="font-bold text-accent">Q</span>
-          <span className="font-light">AI</span>
-        </span>
-      </span>
+      <BrandMark />
 
       <div className="min-w-0">
         <div className="flex items-center gap-1">

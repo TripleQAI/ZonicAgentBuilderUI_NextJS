@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,6 +24,11 @@ import { useWorkflowStore } from '@/store/useWorkflowStore';
  */
 export function BuilderShell() {
   const [dialog, setDialog] = useState<DialogName | null>(null);
+  // `/builder?id=<workflow>` opens that workflow and `/builder?new=1` a blank one
+  // (the workflow list links here); with neither, the latest workflow opens.
+  const searchParams = useSearchParams();
+  const requestedId = searchParams.get('id');
+  const requestedNew = searchParams.get('new') !== null;
 
   const setNodeRegistry = useWorkflowStore((s) => s.setNodeRegistry);
   const setNodeSemantics = useWorkflowStore((s) => s.setNodeSemantics);
@@ -87,18 +93,22 @@ export function BuilderShell() {
     [loadAgent, registerAgent, setRelationshipMap, setRootId],
   );
 
-  // Open the most recently updated workflow on first load, as the source did.
+  // Open what the URL asks for, else the most recently updated workflow, as the source did.
   const [bootstrapped, setBootstrapped] = useState(false);
   useEffect(() => {
     if (bootstrapped || !agents.data) return;
     setBootstrapped(true);
-    if (agents.data.length > 0) {
+    if (requestedNew) {
+      newAgent();
+    } else if (requestedId) {
+      void openAgent(requestedId, { asRoot: true });
+    } else if (agents.data.length > 0) {
       const root = agents.data.find((a) => a.isRoot) ?? agents.data[0];
       void openAgent(root.agenticWorkflowId, { asRoot: true });
     } else {
       newAgent();
     }
-  }, [agents.data, bootstrapped, newAgent, openAgent]);
+  }, [agents.data, bootstrapped, newAgent, openAgent, requestedId, requestedNew]);
 
   const save = useCallback(async () => {
     const agent = useWorkflowStore.getState().currentAgent;

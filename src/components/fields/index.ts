@@ -39,6 +39,7 @@ import {
   StateUpdateListField,
   ToolListField,
 } from '@/components/fields/lists';
+import { MemberListField } from '@/components/fields/members';
 import { AgentSelectorField, RelationshipStatusField } from '@/components/fields/relations';
 import type { FieldProps } from '@/components/fields/primitives';
 
@@ -50,6 +51,7 @@ export const FIELD_COMPONENTS: Record<string, ComponentType<FieldProps>> = {
   select: SelectField,
   node_select: NodeSelectField,
   node_multiselect: NodeMultiSelectField,
+  member_list: MemberListField,
   multi_select: MultiSelectField,
   code: CodeField,
   markdown: MarkdownField,

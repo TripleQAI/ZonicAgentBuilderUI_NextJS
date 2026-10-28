@@ -34,6 +34,8 @@ const SOURCE_FIELD_TYPES = [
   'query_var_list',
   'agentic_workflow_selector',
   'relationship_status',
+  // Not in the source: the swarm node type's members.
+  'member_list',
 ];
 
 describe('field component registry', () => {

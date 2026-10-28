@@ -59,6 +59,8 @@ export interface NodeTypeDef {
   sortOrder: number;
   /** Palette group, matching a `nodeCategories` option value. */
   category?: string;
+  /** Canvas layout: `kind: "container"` draws a frame its members sit in (a swarm). */
+  layout?: { kind: string; minWidth?: number; minHeight?: number } | null;
 }
 
 export interface ToolDef {

@@ -19,7 +19,19 @@ export interface BranchSpec {
   idField: string;
 }
 
+/** A container node type (a swarm): where its members and entry point live, and who may join. */
+export interface ContainerSpec {
+  /** Dot-path to the member node IDs, e.g. "config.members". */
+  membersPath: string;
+  /** Dot-path to the member a run starts at, e.g. "config.entryPoint". */
+  entryPointPath: string;
+  /** Node types that may be members, e.g. ["agent", "llm"]. */
+  memberTypes: string[];
+}
+
 export interface NodeSemantics {
+  /** node type -> where a container keeps its members (a swarm). */
+  swarms?: Record<string, ContainerSpec>;
   /** node type -> dot-path holding the child workflow id. */
   childReference?: Record<string, string>;
   /** node type -> dot-path holding sibling node ids to hand off to. */

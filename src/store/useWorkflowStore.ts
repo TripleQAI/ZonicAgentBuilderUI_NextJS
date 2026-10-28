@@ -20,6 +20,15 @@ import type {
   WorkflowEdge,
   WorkflowNode,
 } from '@/types/agent';
+import { dropPosition } from '@/components/canvas/containerLayout';
+import {
+  containerOf,
+  containerSpec,
+  entryPoint,
+  memberIds,
+  repairContainers,
+  toAbsolute,
+} from '@/lib/registry/containers';
 import { handoffPathFor } from '@/lib/registry/nodeFields';
 import { HANDOFF_PREFIX } from '@/lib/registry/nodeHandles';
 import type { NodeSemantics } from '@/lib/registry/nodeSemantics';
@@ -96,6 +105,10 @@ export interface WorkflowState {
   newAgent: () => void;
 
   addNode: (type: string, position: Position) => WorkflowNode | null;
+  /** Adds a node from the palette straight into a container (a swarm) at an absolute point. */
+  addNodeInto: (type: string, position: Position, containerId: string) => WorkflowNode | null;
+  /** Takes a member out of its container; it stays where it was drawn. */
+  removeMember: (containerId: string, nodeId: string) => void;
   updateNode: (nodeId: string, patch: Partial<WorkflowNode>) => void;
   updateNodePath: (nodeId: string, dotPath: string, value: unknown) => void;
   moveNode: (nodeId: string, position: Position) => void;
@@ -149,6 +162,8 @@ export const useWorkflowStore = create<WorkflowState>()(
     setNodeSemantics: (semantics) =>
       set((state) => {
         state.nodeSemantics = semantics;
+        // A workflow loaded before the semantics arrived gets its swarms repaired now.
+        if (state.currentAgent) repairContainers(state.currentAgent, semantics);
       }),
 
     getNodeTypeDef: (type) => get().nodeRegistry.find((t) => t.type === type),
@@ -207,6 +222,8 @@ export const useWorkflowStore = create<WorkflowState>()(
     loadAgent: (document) =>
       set((state) => {
         state.currentAgent = fromAgentJson(document);
+        // Members follow their swarm's members list (the list wins), as the runtime reads it.
+        repairContainers(state.currentAgent, state.nodeSemantics);
         state.allAgentsById[state.currentAgent.agenticWorkflowId] = document;
         state.selectedNodeId = null;
         state.selectedEdgeId = null;
@@ -269,6 +286,52 @@ export const useWorkflowStore = create<WorkflowState>()(
       return created;
     },
 
+    addNodeInto: (type, position, containerId) => {
+      const container = get().currentAgent?.nodes.find((n) => n.id === containerId);
+      const spec = container && containerSpec(get().nodeSemantics, container.type);
+      if (!container || !spec || !spec.memberTypes.includes(type)) return get().addNode(type, position);
+      const created = get().addNode(type, dropPosition(position, container));
+      if (!created) return null;
+      set((state) => {
+        const node = state.currentAgent?.nodes.find((n) => n.id === created.id);
+        const parent = state.currentAgent?.nodes.find((n) => n.id === containerId);
+        if (!node || !parent) return;
+        node.parentId = containerId;
+        node.positionAbsolute = toAbsolute(node.position, parent);
+        setDotPath(parent as unknown as Record<string, unknown>, spec.membersPath, [
+          ...memberIds(parent, spec),
+          node.id,
+        ]);
+        // The first member is where a run starts, until someone picks another.
+        if (!entryPoint(parent, spec))
+          setDotPath(parent as unknown as Record<string, unknown>, spec.entryPointPath, node.id);
+        state.formEpoch += 1;
+      });
+      return get().currentAgent?.nodes.find((n) => n.id === created.id) ?? created;
+    },
+
+    removeMember: (containerId, nodeId) =>
+      set((state) => {
+        const parent = state.currentAgent?.nodes.find((n) => n.id === containerId);
+        const node = state.currentAgent?.nodes.find((n) => n.id === nodeId);
+        const spec = parent && containerSpec(state.nodeSemantics, parent.type);
+        if (!parent || !node || !spec) return;
+        setDotPath(
+          parent as unknown as Record<string, unknown>,
+          spec.membersPath,
+          memberIds(parent, spec).filter((id) => id !== nodeId),
+        );
+        if (entryPoint(parent, spec) === nodeId)
+          setDotPath(parent as unknown as Record<string, unknown>, spec.entryPointPath, '');
+        if (node.parentId === containerId) {
+          node.position = toAbsolute(node.position, parent);
+          node.positionAbsolute = node.position;
+          delete node.parentId;
+        }
+        state.isDirty = true;
+        state.formEpoch += 1;
+      }),
+
     updateNode: (nodeId, patch) =>
       set((state) => {
         const node = state.currentAgent?.nodes.find((n) => n.id === nodeId);
@@ -297,19 +360,39 @@ export const useWorkflowStore = create<WorkflowState>()(
       set((state) => {
         const node = state.currentAgent?.nodes.find((n) => n.id === nodeId);
         if (!node) return;
+        // A member's position is relative to its swarm; positionAbsolute stays absolute.
+        const parent = node.parentId
+          ? state.currentAgent?.nodes.find((n) => n.id === node.parentId)
+          : undefined;
         node.position = position;
-        node.positionAbsolute = position;
+        node.positionAbsolute = parent ? toAbsolute(position, parent) : position;
         state.isDirty = true;
       }),
 
     deleteNode: (nodeId) =>
       set((state) => {
-        if (!state.currentAgent) return;
-        state.currentAgent.nodes = state.currentAgent.nodes.filter((n) => n.id !== nodeId);
-        state.currentAgent.edges = state.currentAgent.edges.filter(
-          (e) => e.source !== nodeId && e.target !== nodeId,
-        );
-        if (state.selectedNodeId === nodeId) state.selectedNodeId = null;
+        const agent = state.currentAgent;
+        if (!agent) return;
+        const node = agent.nodes.find((n) => n.id === nodeId);
+        // A swarm takes its members with it: they cannot run outside one.
+        const spec = node && containerSpec(state.nodeSemantics, node.type);
+        const doomed = new Set([nodeId, ...(node && spec ? memberIds(node, spec) : [])]);
+        // A member leaves its swarm's members list (and entry point) as it goes.
+        const owner = containerOf(agent, state.nodeSemantics, nodeId);
+        const ownerSpec = owner && containerSpec(state.nodeSemantics, owner.type);
+        if (owner && ownerSpec) {
+          setDotPath(
+            owner as unknown as Record<string, unknown>,
+            ownerSpec.membersPath,
+            memberIds(owner, ownerSpec).filter((id) => id !== nodeId),
+          );
+          if (entryPoint(owner, ownerSpec) === nodeId)
+            setDotPath(owner as unknown as Record<string, unknown>, ownerSpec.entryPointPath, '');
+          state.formEpoch += 1;
+        }
+        agent.nodes = agent.nodes.filter((n) => !doomed.has(n.id));
+        agent.edges = agent.edges.filter((e) => !doomed.has(e.source) && !doomed.has(e.target));
+        if (state.selectedNodeId && doomed.has(state.selectedNodeId)) state.selectedNodeId = null;
         state.isDirty = true;
       }),
 

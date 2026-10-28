@@ -154,6 +154,39 @@ body {
   .node-card.is-missing-child {
     border-color: var(--danger);
   }
+  /* A container (swarm): a tinted frame with a solid header band; its members
+     are drawn inside it. Solid border when selected, dashed otherwise. */
+  .container-frame {
+    @apply flex h-full w-full flex-col;
+    border-radius: 14px;
+    border: 1.5px dashed color-mix(in srgb, var(--node-color) 60%, var(--border-color));
+    background: color-mix(in srgb, var(--node-color) 8%, var(--bg-panel));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .container-frame.is-selected {
+    border-style: solid;
+    border-color: var(--node-color);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color) 30%, transparent),
+      0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+  .container-header {
+    @apply flex shrink-0 items-center gap-2.5 px-3;
+    border-radius: 13px 13px 0 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--node-color) 35%, var(--border-color));
+    background: linear-gradient(
+      120deg,
+      var(--bg-panel) 30%,
+      color-mix(in srgb, var(--node-color) 18%, var(--bg-panel))
+    );
+  }
+  /* The entry member's star, on the card's top-right corner. */
+  .entry-star {
+    @apply absolute text-[14px];
+    top: -8px;
+    right: -8px;
+    color: var(--warning);
+  }
+
   /* The node type's icon on a tile of its colour, lighter at the top left. */
   .node-icon-tile {
     @apply flex shrink-0 items-center justify-center text-white;

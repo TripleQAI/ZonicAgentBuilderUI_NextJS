@@ -19,6 +19,8 @@ export interface WorkflowNode {
   position: Position;
   positionAbsolute?: Position;
   config: Record<string, unknown>;
+  /** The container (swarm) this node is a member of; its position is then relative to it. */
+  parentId?: string;
   properties?: Record<string, unknown>;
   variableUpdates?: unknown[];
   selected?: boolean;
