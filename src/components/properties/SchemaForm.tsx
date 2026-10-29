@@ -5,7 +5,7 @@ import { FormProvider, useForm, useWatch } from 'react-hook-form';
 
 import { resolveFieldComponent } from '@/components/fields';
 import { cn } from '@/lib/utils/cn';
-import { setDotPath } from '@/lib/utils/dotPath';
+import { getDotPath, setDotPath } from '@/lib/utils/dotPath';
 import { useWorkflowStore } from '@/store/useWorkflowStore';
 import type { WorkflowNode } from '@/types/agent';
 import type { FormField, FormSection } from '@/types/registry';
@@ -71,8 +71,8 @@ function SectionRenderer({ section }: { section: FormSection }) {
   );
 }
 
-/** Pushes form changes into the store as dot-path patches. */
-function FormSync({ node }: { node: WorkflowNode }) {
+/** Pushes form changes into the store as dot-path patches, one per form field. */
+function FormSync({ node, paths }: { node: WorkflowNode; paths: string[] }) {
   const values = useWatch();
   const updateNodePath = useWorkflowStore((s) => s.updateNodePath);
   /** What the store already holds, so only real edits are written. */
@@ -80,7 +80,7 @@ function FormSync({ node }: { node: WorkflowNode }) {
 
   useEffect(() => {
     if (!values || typeof values !== 'object') return;
-    const current = values as Record<string, unknown>;
+    const current = Object.fromEntries(paths.map((path) => [path, getDotPath(values, path)]));
 
     // First pass is the form seeding itself from the node. Writing then would
     // mark the workflow unsaved just for opening a node, and the "unsaved
@@ -92,16 +92,15 @@ function FormSync({ node }: { node: WorkflowNode }) {
       return;
     }
 
-    // The form is flat by dot-path, so each top-level key is one patch. Only
-    // the ones that actually changed are pushed — a keystroke in one field
-    // must not rewrite every other field.
+    // Each field's dot-path is one patch. Only the ones that actually changed
+    // are pushed — a keystroke in one field must not rewrite every other field.
     for (const [path, value] of Object.entries(current)) {
       const encoded = JSON.stringify(value ?? null);
       if (synced.current[path] === encoded) continue;
       synced.current[path] = encoded;
       updateNodePath(node.id, path, value);
     }
-  }, [node.id, updateNodePath, values]);
+  }, [node.id, paths, updateNodePath, values]);
 
   return null;
 }
@@ -110,20 +109,16 @@ export function SchemaForm({ node }: { node: WorkflowNode }) {
   const definition = useWorkflowStore((s) => s.getNodeTypeDef(node.type));
   const sections = definition?.formSchema?.sections ?? [];
 
-  // Seed react-hook-form with the node's current values, keyed by dot-path.
+  // Seed react-hook-form with the node's current values, nested by dot-path:
+  // react-hook-form reads a name such as `config.messages.0.content` as a path,
+  // so a list row's inputs only find their values in a nested object.
   const defaultValues: Record<string, unknown> = {};
+  const paths: string[] = [];
   for (const section of sections) {
     for (const field of section.fields) {
-      const scratch: Record<string, unknown> = {};
-      setDotPath(scratch, field.key, undefined);
-      let cursor: unknown = node;
-      for (const key of field.key.split('.')) {
-        cursor =
-          cursor && typeof cursor === 'object'
-            ? (cursor as Record<string, unknown>)[key]
-            : undefined;
-      }
-      defaultValues[field.key] = cursor ?? field.defaultValue ?? emptyFor(field.type);
+      paths.push(field.key);
+      const value = getDotPath(node, field.key);
+      setDotPath(defaultValues, field.key, value ?? field.defaultValue ?? emptyFor(field.type));
     }
   }
 
@@ -141,7 +136,7 @@ export function SchemaForm({ node }: { node: WorkflowNode }) {
   return (
     <FormProvider {...methods}>
       <form onSubmit={(event) => event.preventDefault()}>
-        <FormSync node={node} />
+        <FormSync node={node} paths={paths} />
         {sections.map((section, index) => (
           <SectionRenderer
             // Re-key on the reshaping values so a rule-branch change rebuilds

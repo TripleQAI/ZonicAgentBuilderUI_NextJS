@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -133,6 +134,46 @@ describe('writing edits back', () => {
     await userEvent.selectOptions(screen.getByLabelText(/Model/), 'claude-haiku-4-5');
 
     expect(store().isDirty).toBe(true);
+  });
+
+  it('seeds the rows of a list field and edits one row without touching the others', async () => {
+    const messages = [
+      { role: 'system', content: 'You rate risk.' },
+      { role: 'user', content: 'Data: {{nodes.fetch.output.body}}' },
+    ];
+    const withList: NodeTypeDef = {
+      ...DEFINITION,
+      formSchema: {
+        sections: [{ title: 'Instructions', fields: [{ key: 'config.messages', label: 'Messages', type: 'message_list' }] }],
+      },
+    };
+    useWorkflowStore.setState({ nodeRegistry: [withList] });
+    store().loadAgent(structuredClone({ ...DOCUMENT, nodes: [{ ...NODE, config: { messages } }] }));
+    const client = new QueryClient();
+    client.setQueryData(['option-sets'], {
+      messageRoles: [
+        { value: 'system', label: 'System' },
+        { value: 'user', label: 'User' },
+      ],
+    });
+    render(
+      <QueryClientProvider client={client}>
+        <SchemaForm node={storedNode()} />
+      </QueryClientProvider>,
+    );
+
+    // Each row's inputs are named config.messages.<i>.<column>: they must find the saved values.
+    const contents = screen.getAllByPlaceholderText(/Message content/);
+    expect(contents.map((c) => (c as HTMLTextAreaElement).value)).toEqual(messages.map((m) => m.content));
+    const roles = screen.getAllByRole('combobox');
+    expect(roles.map((r) => (r as HTMLSelectElement).value)).toEqual(['system', 'user']);
+
+    await userEvent.type(contents[1], ' (latest)');
+
+    expect((storedNode().config as { messages: typeof messages }).messages).toEqual([
+      messages[0],
+      { role: 'user', content: 'Data: {{nodes.fetch.output.body}} (latest)' },
+    ]);
   });
 
   it('leaves the other fields untouched', async () => {
