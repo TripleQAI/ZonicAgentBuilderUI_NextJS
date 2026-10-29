@@ -9,6 +9,23 @@ See [MIGRATION_PLAN.md](../MIGRATION_PLAN.md) §9 for the design.
 
 ---
 
+## Nebius x NVIDIA Global AI Hackathon
+
+This repository is part of the Zonic agent platform, our entry in the Nebius x NVIDIA Global AI Hackathon (Best Apps and Agents track). The platform's agents run on NVIDIA Nemotron models served by Nebius Token Factory. How that is wired, and which model does what, is in the runtime's README: [NVIDIA Nemotron on Nebius Token Factory](https://github.com/TripleQAI/ZonicAgentRuntimeBackend_Python_LangGraph#nvidia-nemotron-on-nebius-token-factory).
+
+**This repository's part:** Every LLM, agent and swarm node's model list offers the Nemotron models (`nemotron-3-nano`, `-super`, `-ultra`, `nemotron-3.5-super-vl`). The chosen code is saved in the workflow, and the runtime resolves it to a Token Factory model. The Energy, Facilities, Risk and All Agents workflows were designed here.
+
+**Live demo:** the chat at https://dev.tripleq.ai/agent-runtime-lg and the agent builder at https://dev.tripleq.ai/agent-visual-builder-lg/workflows. Both sign in with Amazon Cognito; the test accounts are in the hackathon submission's testing instructions.
+
+| Repository | Role |
+|---|---|
+| **ZonicAgentBuilderUI_NextJS** (this repository) | The visual builder: design a workflow and pick a Nemotron model for each node |
+| [ZonicAgentBuilderServer_FastAPI](https://github.com/TripleQAI/ZonicAgentBuilderServer_FastAPI) | The builder's API: validation, import and export, the node registry and model options |
+| [ZonicAgentRuntimeBackend_Python_LangGraph](https://github.com/TripleQAI/ZonicAgentRuntimeBackend_Python_LangGraph) | Runs the workflows on LangGraph and calls Nemotron through Token Factory |
+| [ZonicAgentRuntimeUI_NextJS_For_LangGraph](https://github.com/TripleQAI/ZonicAgentRuntimeUI_NextJS_For_LangGraph) | The chat app people use the agents in |
+| [ZonicMCPServer_FastAPI](https://github.com/TripleQAI/ZonicMCPServer_FastAPI) | The agents' tools over open data |
+| [ZonicPostgresqlServer_FastAPI](https://github.com/TripleQAI/ZonicPostgresqlServer_FastAPI) | The PostgreSQL gateway every service stores data through (Neon) |
+
 ## Setup
 
 ```powershell
@@ -133,3 +150,7 @@ See [tests/README.md](tests/README.md) for the layout and what each file is for.
 - **Code and payload editors in the MCP configurator are textareas too**, for
   the same reason as above — the source used CodeMirror for the SQL script and
   the JSON body/payload templates.
+
+## License
+
+Licensed under the Apache License 2.0; see [LICENSE](LICENSE).
