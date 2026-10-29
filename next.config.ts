@@ -6,10 +6,23 @@ import type { NextConfig } from 'next';
  */
 const BACKEND = (process.env.API_BASE_URL ?? 'http://localhost:8000').replace(/\/$/, '');
 
+/**
+ * The deployed build (ZonicAgentBuilderServer_FastAPI/deploy/aws-lambda/deploy.sh):
+ * NEXT_OUTPUT=export writes static files to out/ for S3 and CloudFront, which
+ * route the API themselves, and NEXT_BASE_PATH serves the app under a path such
+ * as /agent-visual-builder-lg. Unset, the app runs at the root with the proxy below.
+ */
+const STATIC_EXPORT = process.env.NEXT_OUTPUT === 'export';
+const BASE_PATH = (process.env.NEXT_BASE_PATH ?? '').replace(/\/$/, '');
+
 const config: NextConfig = {
   reactStrictMode: true,
   // The builder is a single client-heavy route; no image optimisation needed.
   images: { unoptimized: true },
+  ...(STATIC_EXPORT ? { output: 'export' as const } : {}),
+  ...(BASE_PATH ? { basePath: BASE_PATH } : {}),
+  // lib/basePath.ts reads it back for the URLs Next does not prefix.
+  env: { NEXT_PUBLIC_BASE_PATH: BASE_PATH },
 
   /**
    * Proxy the API through this server so the browser makes same-origin
@@ -31,6 +44,8 @@ const config: NextConfig = {
    * stay defined but go unused in that mode.
    */
   async rewrites() {
+    // A static export has no server to proxy through; it would only warn.
+    if (STATIC_EXPORT) return [];
     return [
       { source: '/api/v1/:path*', destination: `${BACKEND}/api/v1/:path*` },
       { source: '/health', destination: `${BACKEND}/health` },

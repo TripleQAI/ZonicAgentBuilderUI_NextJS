@@ -6,6 +6,8 @@
  * here — still one place, still the only place a URL string appears.
  */
 
+import { BASE_PATH } from '@/lib/basePath';
+
 /**
  * Empty by default, which makes every URL below relative — a same-origin
  * request that `next.config.ts` rewrites to the API server. No cross-origin
@@ -14,11 +16,14 @@
  * Set NEXT_PUBLIC_API_BASE_URL to call the API directly instead. That is a
  * cross-origin request, so the API must return `Access-Control-Allow-Origin`
  * for this app's exact origin — add it to the backend's CORS_ORIGINS.
+ *
+ * Served under a path (lib/basePath.ts), the API is under the same path: the
+ * deployment routes <basePath>/api/v1/* to it, still same-origin.
  */
-export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(/\/$/, '');
+export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? BASE_PATH).replace(/\/$/, '');
 
-/** True when requests go straight to the API rather than through the proxy. */
-export const IS_DIRECT = API_BASE !== '';
+/** True when requests go straight to an API on another host rather than this origin. */
+export const IS_DIRECT = /^https?:\/\//.test(API_BASE);
 
 const V1 = `${API_BASE}/api/v1`;
 
